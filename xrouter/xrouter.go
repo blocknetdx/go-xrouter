@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/blocknetdx/go-xrouter/sn"
@@ -38,6 +39,12 @@ const (
 
 	// semanticAlphabet
 	semanticAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
+)
+
+// xrouter namespaces
+const (
+	xr string = "xr::"
+	xrs string = "xrs::"
 )
 
 // normalizeVerString returns the passed string stripped of all characters which
@@ -72,6 +79,12 @@ func version() string {
 	return version
 }
 
+type SnodeReply struct {
+	Pubkey []byte
+	Hash []byte
+	Reply []byte
+}
+
 type Config struct {
 	MaxPeers int
 	SimNet bool
@@ -85,7 +98,7 @@ type Config struct {
 }
 
 var cfg = Config{
-	defaultTargetOutbound,
+	125,
 	false,
 	false,
 	100,
@@ -109,7 +122,7 @@ type Client struct {
 	banPeers       chan *serverPeer
 	broadcast      chan broadcastMsg
 	quit           chan struct{}
-	ready          chan struct{}
+	ready          chan bool
 	query          chan interface{}
 	interrupt      <-chan struct{}
 	knownAddresses map[string]struct{}
@@ -121,7 +134,6 @@ type Client struct {
 	startupTime    int64
 	bytesReceived  uint64 // Total bytes received from all peers since start
 	bytesSent      uint64 // Total bytes sent by all peers since start
-	xrouterReady   int32
 }
 
 func NewClient(params chaincfg.Params) (*Client, error) {
@@ -129,16 +141,15 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 	s.params = &params
 	s.services = make(map[string][]*sn.ServiceNode)
 	s.mu = sync.Mutex{}
-	s.addrManager = addrmgr.New(".", btcdLookup)
+	s.addrManager = addrmgr.New(cfg.DataDir, btcdLookup)
 	s.newPeers = make(chan *serverPeer, cfg.MaxPeers)
 	s.donePeers = make(chan *serverPeer, cfg.MaxPeers)
 	s.banPeers = make(chan *serverPeer, cfg.MaxPeers)
 	s.broadcast = make(chan broadcastMsg, cfg.MaxPeers)
 	s.quit = make(chan struct{})
-	s.ready = make(chan struct{})
+	s.ready = make(chan bool)
 	s.query = make(chan interface{})
 	s.interrupt = interruptListener()
-	// Create a connection manager.
 	newAddressFunc := func() (net.Addr, error) {
 		for tries := 0; tries < 100; tries++ {
 			addr := s.addrManager.GetAddress()
@@ -157,26 +168,19 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 				continue
 			}
 
-			// only allow recent nodes (10mins) after we failed 30
-			// times
-			if tries < 30 && time.Since(addr.LastAttempt()) < 10*time.Minute {
-				continue
-			}
-
-			// allow nondefault ports after 50 failed tries.
-			if tries < 50 && fmt.Sprintf("%d", addr.NetAddress().Port) !=
-				s.params.DefaultPort {
-				continue
-			}
-
 			// Mark an attempt for the valid address.
 			s.addrManager.Attempt(addr.NetAddress())
-
 			addrString := addrmgr.NetAddressKey(addr.NetAddress())
 			if s.connManager.HasConnection(addrString) {
 				continue
 			}
-			return addrStringToNetAddr(addrString)
+
+			netAddr, err := addrStringToNetAddr(addrString)
+			if err != nil {
+				continue
+			}
+
+			return netAddr, nil
 		}
 
 		return nil, errors.New("no valid connect address")
@@ -198,38 +202,68 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 	return &s, nil
 }
 
-func (s *Client) WaitForService(timeoutMsec uint32, service string, serviceCount uint32) error {
-	return nil
-}
-
-func (s *Client) GetBlockCountRaw(token string, querynodes uint32) (string, string, error) {
-	uid := uuid.New().String()
-	// lookup service nodes for token
-	snodes, ok := s.services["xr::"+token] // TODO Blocknet token parser (accept BLOCK, xr::BLOCK, etc)
-	if !ok {
-		return "", uid, fmt.Errorf("no services for token %s", token)
+func (s *Client) AddServiceNode(node *sn.ServiceNode) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// Only support EXR node connections
+	if !node.EXRCompatible() {
+		return
 	}
-
-	// fetch EXR compatible snodes
-	result, err := fetchDataFromSnodes(&snodes, fmt.Sprintf("/xr/%s/xrGetBlockCount", token))
-	return uid, result, err
+	s.servicenodes = append(s.servicenodes, node)
+	for k, _ := range node.Services() {
+		s.services[k] = append(s.services[k], node)
+	}
 }
 
-func (s *Client) WaitForXRouter(ctx context.Context) error {
-out:
+func (s *Client) WaitForService(timeoutMsec uint32, service string, query int) error {
+	var msec uint32 = 0
 	for {
-		select {
-		case <-s.ready:
-			break out
-		case <-s.interrupt:
-			return errors.New("XRouter timeout, interrupt received")
-		case <-s.quit:
-			return errors.New("XRouter timeout, shutdown requested")
-		case <-ctx.Done():
-			return errors.New("XRouter timeout, failed to connect")
+		s.mu.Lock()
+		snodes1, ok1 := s.services[addNamespace(service, true)]
+		snodes2, ok2 := s.services[addNamespace(service, false)]
+		s.mu.Unlock()
+		if !ok1 && !ok2 && len(snodes1) < query && len(snodes2) < query {
+			time.Sleep(100 * time.Millisecond)
+			msec += 100
+			if msec >= timeoutMsec {
+				return errors.New("timeout waiting for service")
+			}
+		} else {
+			break
 		}
 	}
 	return nil
+}
+
+func (s *Client) GetBlockCountRaw(service string, query int) (string, []SnodeReply, error) {
+	uid := uuid.New().String()
+	nsservice := addNamespace(service, true)
+
+	// lookup service nodes for token
+	snodes, err := s.snodesForService(nsservice, true)
+	if len(snodes) <= 0 || err != nil {
+		return uid, []SnodeReply{}, fmt.Errorf("no services for token %s", nsservice)
+	}
+
+	// fetch EXR compatible snodes
+	replies, err := fetchDataFromSnodes(&snodes, fmt.Sprintf("/xr/%s/xrGetBlockCount", removeNamespace(nsservice)), query)
+	if len(replies) <= 0 {
+		return uid, []SnodeReply{}, errors.New("no replies found")
+	}
+	return uid, replies, nil
+}
+
+func (s *Client) WaitForXRouter(ctx context.Context) (bool, error) {
+	select {
+	case isReady := <-s.ready:
+		return isReady, nil
+	case <-s.interrupt:
+		return false, errors.New("XRouter timeout, interrupt received")
+	case <-s.quit:
+		return false, errors.New("XRouter timeout, shutdown requested")
+	case <-ctx.Done():
+		return false, errors.New("XRouter timeout, failed to connect")
+	}
 }
 
 // addKnownAddresses adds the given addresses to the set of known addresses to
@@ -250,139 +284,105 @@ func (s *Client) addressKnown(na *wire.NetAddress) bool {
 	return exists
 }
 
-/*func (s *Client) connectToSeedNode(params chaincfg.Params) error {
-	verack := make(chan struct{})
-	peerCfg := &peer.Config{
-		UserAgentName:    "exrbtcd",  // User agent name to advertise.
-		UserAgentVersion: "4.2.0", // User agent version to advertise.
-		ChainParams:      &params,
-		Services:         0,
-		TrickleInterval:  time.Second * 10,
-		Listeners: peer.MessageListeners{
-			OnVersion: func(p *peer.Peer, msg *wire.MsgVersion) *wire.MsgReject {
-				fmt.Println("outbound: received version")
-				return nil
-			},
-			OnVerAck: func(p *peer.Peer, msg *wire.MsgVerAck) {
-				verack <- struct{}{}
-			},
-			OnAddr: func(p *peer.Peer, msg *wire.MsgAddr) {
-				// A message that has no addresses is invalid.
-				if len(msg.AddrList) == 0 {
-					p.Disconnect()
-					return
-				}
-
-				for _, na := range msg.AddrList {
-					// Don't add more address if we're disconnecting.
-					if !p.Connected() {
-						return
-					}
-
-					// Set the timestamp to 5 days ago if it's more than 24 hours
-					// in the future so this address is one of the first to be
-					// removed when space is needed.
-					now := time.Now()
-					if na.Timestamp.After(now.Add(time.Minute * 10)) {
-						na.Timestamp = now.Add(-1 * time.Hour * 24 * 5)
-					}
-
-					// Add address to known addresses for this peer.
-					s.addKnownAddresses([]*wire.NetAddress{na})
-				}
-
-				// Add addresses to server address manager.  The address manager handles
-				// the details of things such as preventing duplicate addresses, max
-				// addresses, and last seen updates.
-				// XXX bitcoind gives a 2 hour time penalty here, do we want to do the
-				// same?
-				s.addrManager.AddAddresses(msg.AddrList, sp.NA())
-			},
-		},
+func (s *Client) snodesForService(service string, spv bool) ([]*sn.ServiceNode, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	serv := addNamespace(service, spv)
+	snodes, ok := s.services[serv]
+	if !ok {
+		return []*sn.ServiceNode{}, errors.New("no service nodes found for " + serv)
 	}
+	return snodes, nil
+}
 
-	if len(params.DNSSeeds) == 0 {
-		return errors.New("at least 1 dns seed node needs to be specified")
+// removeNamespace removes the XRouter namespace (e.g. xr::, xrs::)
+func removeNamespace(ns string) string {
+	if strings.HasPrefix(ns, xr) {
+		return strings.TrimPrefix(ns, xr)
+	} else if strings.HasPrefix(ns, xrs) {
+		return strings.TrimPrefix(ns, xrs)
 	}
+	return ns
+}
 
-	p, err := peer.NewOutboundPeer(peerCfg, params.DNSSeeds[0].Host + ":" + params.DefaultPort)
-	if err != nil {
-		fmt.Printf("NewOutboundPeer: error %v\n", err)
-		return errors.New("failed to connect to seed node")
+// addNamespace adds the XRouter namespace (e.g. xr::, xrs::)
+func addNamespace(ns string, spv bool) string {
+	if spv && !strings.HasPrefix(ns, xr) {
+		return xr + ns
+	} else if !spv && !strings.HasPrefix(ns, xrs) {
+		return xrs + ns
 	}
+	return ns
+}
 
-	// Establish the connection to the peer address and mark it connected.
-	conn, err := net.Dial("tcp", p.Addr())
-	if err != nil {
-		fmt.Printf("net.Dial: error %v\n", err)
-		return errors.New("failed to connect to seed node")
-	}
-	p.AssociateConnection(conn)
-
-	// Wait for the verack message or timeout in case of failure.
-	select {
-	case <-verack:
-	case <-time.After(time.Second * 15):
-		fmt.Printf("seed node connection timeout, no verack")
-	}
-
-	// Disconnect the peer.
-	p.Disconnect()
-	p.WaitForDisconnect()
-
-	return nil
-}*/
-
-func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, endpoint string) (string, error) {
-	var hashstr string
-	snodeDataCounts := make(map[string]int)
-	snodeData := make(map[string][]byte)
+// fetchDataFromSnodes queries N number of service nodes and returns the results.
+func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, query int) ([]SnodeReply, error) {
+	// TODO Blocknet penalize bad snodes
+	var replies []SnodeReply
+	queried := 0
 	for _, snode := range *snodes {
 		if !snode.EXRCompatible() {
 			continue
 		}
 
-		res, err := http.Get(snode.Endpoint())
-		if err != nil { // TODO Blocknet penalize bad snodes
-			if err != nil {
-				log.Fatal(err)
-			}
+		strPubkey := hex.EncodeToString(snode.Pubkey().SerializeCompressed())
+
+		res, err := http.Get(snode.EndpointPath(path))
+		if err != nil {
+			log.Printf("failed to connect to snode %v %v", strPubkey, err)
 			continue
 		}
 		if res.StatusCode != http.StatusOK {
-			log.Fatalf("bad response from snode %v", res.Status)
-			res.Body.Close()
+			log.Printf("bad response from snode: %v %v", strPubkey, res.Status)
+			_ = res.Body.Close()
 			continue
 		}
 
-		// read response data, hash it and record unique responses
+		// Read response data, hash it and record unique responses
 		data, err := ioutil.ReadAll(res.Body)
-		res.Body.Close()
+		_ = res.Body.Close()
 		if err != nil {
-			log.Fatalf("unable to read snode response %v", string(snode.Pubkey().SerializeCompressed()))
+			log.Printf("unable to read response from snode %v", strPubkey)
 			continue
 		}
 
+		// Compute hash for reply
 		hash := sha1.New()
-		hash.Write(data)
-		hashstr = string(hash.Sum(nil))
+		_, err = hash.Write(data)
+		if err != nil {
+			continue
+		}
 
-		snodeDataCounts[hashstr] += 1
-		if _, ok := snodeData[hashstr]; !ok {
-			snodeData[hashstr] = data
+		// Store reply and exit if reply count is met
+		replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
+		queried += 1
+		if queried >= query {
+			break
 		}
 	}
 
-	snodeDataLen := len(snodeData)
+	if len(replies) <= 0 {
+		return replies, errors.New("replies ")
+	}
+	return replies, nil
+}
+
+// MostCommonReply returns the most common reply from the reply list
+func MostCommonReply(replies []SnodeReply) (SnodeReply, error) {
+	snodeDataCounts := make(map[string]int)
+	for _, reply := range replies {
+		snodeDataCounts[string(reply.Hash)] += 1
+	}
+
+	snodeDataLen := len(snodeDataCounts)
 	if snodeDataLen == 0 { // no result
-		return "", nil
+		return SnodeReply{}, errors.New("no replies found")
 	}
-
 	if snodeDataLen == 1 { // single result
-		return string(snodeData[hashstr]), nil
+		return replies[0], nil
 	}
 
-	// return the most common result
+	// Return the most common result
 	lastCount := 0
 	lastHashStr := ""
 	for k, v := range snodeDataCounts {
@@ -391,9 +391,11 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, endpoint string) (string, er
 			lastHashStr = k
 		}
 	}
-	if data, ok := snodeData[lastHashStr]; ok {
-		return string(data), nil
+	for _, reply := range replies {
+		if string(reply.Hash) == lastHashStr {
+			return reply, nil
+		}
 	}
 
-	return "", nil
+	return SnodeReply{}, errors.New("no replies found (b)")
 }

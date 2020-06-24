@@ -26,21 +26,17 @@ import (
 )
 
 const (
-	// defaultServices describes the default services that are supported by
-	// the server.
-	defaultServices = 0
-
 	// defaultRequiredServices describes the default services that are
 	// required to be supported by outbound peers.
 	defaultRequiredServices = wire.SFNodeNetwork | wire.SFNodeList
 
 	// defaultTargetOutbound is the default number of outbound peers to target.
-	defaultTargetOutbound = 2
+	defaultTargetOutbound = 4
 
 	// connectionRetryInterval is the base amount of time to wait in between
 	// retries when connecting to persistent peers.  It is adjusted by the
 	// number of retries such that there is a retry backoff.
-	connectionRetryInterval = time.Second * 5
+	connectionRetryInterval = time.Second * 1
 )
 
 var (
@@ -122,8 +118,7 @@ func (ps *peerState) forAllPeers(closure func(sp *serverPeer)) {
 	ps.forAllOutboundPeers(closure)
 }
 
-// serverPeer extends the peer to maintain state shared by the server and
-// the blockmanager.
+// serverPeer extends the peer to maintain state shared by the server.
 type serverPeer struct {
 	// The following variables must only be used atomically
 	feeFilter int64
@@ -161,33 +156,6 @@ func (sp *serverPeer) addKnownAddresses(addresses []*wire.NetAddress) {
 		sp.knownAddresses[addrmgr.NetAddressKey(na)] = struct{}{}
 	}
 	sp.addressesMtx.Unlock()
-}
-
-// addressKnown true if the given address is already known to the peer.
-func (sp *serverPeer) addressKnown(na *wire.NetAddress) bool {
-	sp.addressesMtx.RLock()
-	_, exists := sp.knownAddresses[addrmgr.NetAddressKey(na)]
-	sp.addressesMtx.RUnlock()
-	return exists
-}
-
-// pushAddrMsg sends an addr message to the connected peer using the provided
-// addresses.
-func (sp *serverPeer) pushAddrMsg(addresses []*wire.NetAddress) {
-	// Filter addresses already known to the peer.
-	addrs := make([]*wire.NetAddress, 0, len(addresses))
-	for _, addr := range addresses {
-		if !sp.addressKnown(addr) {
-			addrs = append(addrs, addr)
-		}
-	}
-	known, err := sp.PushAddrMsg(addrs)
-	if err != nil {
-		log.Printf("Can't push address message to %s: %v", sp.Peer, err)
-		sp.Disconnect()
-		return
-	}
-	sp.addKnownAddresses(known)
 }
 
 // addBanScore increases the persistent and decaying ban score fields by the
@@ -294,11 +262,6 @@ func (sp *serverPeer) OnAddr(_ *peer.Peer, msg *wire.MsgAddr) {
 		return
 	}
 
-	// Ignore old style addresses which don't include a timestamp.
-	if sp.ProtocolVersion() < wire.NetAddressTimeVersion {
-		return
-	}
-
 	// A message that has no addresses is invalid.
 	if len(msg.AddrList) == 0 {
 		log.Printf("Command [%s] from %s does not contain any addresses",
@@ -328,8 +291,6 @@ func (sp *serverPeer) OnAddr(_ *peer.Peer, msg *wire.MsgAddr) {
 	// Add addresses to server address manager.  The address manager handles
 	// the details of things such as preventing duplicate addresses, max
 	// addresses, and last seen updates.
-	// XXX bitcoind gives a 2 hour time penalty here, do we want to do the
-	// same?
 	sp.server.addrManager.AddAddresses(msg.AddrList, sp.NA())
 }
 
@@ -339,7 +300,7 @@ func (sp *serverPeer) OnSnodeListPing(_ *peer.Peer, msg *wire.MsgSnodeListPing) 
 		return
 	}
 	snode := sn.NewServiceNode(msg.PingPubkey, msg.Config)
-	sp.server.servicenodes = append(sp.server.servicenodes, snode)
+	sp.server.AddServiceNode(snode)
 }
 
 // OnRead is invoked when a peer receives a message and it is used to update
@@ -703,7 +664,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 		UserAgentVersion:  userAgentVersion,
 		UserAgentComments: []string{},
 		ChainParams:       sp.server.params,
-		Services:          wire.SFNodeNetwork | wire.SFNodeList,
+		Services:          defaultRequiredServices,
 		DisableRelayTx:    true,
 		ProtocolVersion:   peer.MaxProtocolVersion,
 		TrickleInterval:   peer.DefaultTrickleInterval,
@@ -747,7 +708,32 @@ func (s *Client) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
 	go s.peerDoneHandler(sp)
 
 	// pull the snode list
-	sp.QueueMessage(wire.NewMsgSnodeList(), s.ready)
+	snodeListSent := make(chan struct{})
+	sp.QueueMessage(wire.NewMsgSnodeList(), snodeListSent)
+
+	select {
+	case <-snodeListSent:
+		// wait for snodes
+		start := time.Now()
+		for {
+			s.mu.Lock()
+			if len(s.servicenodes) >= 1 {
+				s.ready <- true
+				s.mu.Unlock()
+				break
+			}
+			s.mu.Unlock()
+			// wait a second for snode entries
+			time.Sleep(1 * time.Second)
+			curr := time.Now()
+			if curr.Second() - start.Second() >= 5 { // max wait 5 seconds
+				s.ready <- false // timeout
+				break
+			}
+		}
+	case <-time.After(15 * time.Second):
+		s.ready <- false
+	}
 }
 
 // peerDoneHandler handles peer disconnects by notifying the server that it's
@@ -773,17 +759,6 @@ func (s *Client) peerHandler() {
 		banned:          make(map[string]time.Time),
 		outboundGroups:  make(map[string]int),
 	}
-
-	// Add peers discovered through DNS to the address manager.
-	connmgr.SeedFromDNS(s.params, defaultRequiredServices,
-		btcdLookup, func(addrs []*wire.NetAddress) {
-			// Bitcoind uses a lookup of the dns seeder here. This
-			// is rather strange since the values looked up by the
-			// DNS seed lookups will vary quite a lot.
-			// to replicate this behaviour we put all addresses as
-			// having come from the first one.
-			s.addrManager.AddAddresses(addrs, addrs[0])
-		})
 
 	go s.connManager.Start()
 
@@ -910,8 +885,7 @@ func (s *Client) Start() {
 	// Server startup time. Used for the uptime command for uptime calculation.
 	s.startupTime = time.Now().Unix()
 
-	// Start the peer handler which in turn starts the address and block
-	// managers.
+	// Start the peer handler which in turn starts the other managers
 	s.wg.Add(1)
 	go s.peerHandler()
 }
