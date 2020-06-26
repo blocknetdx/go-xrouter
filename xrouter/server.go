@@ -294,7 +294,7 @@ func (sp *serverPeer) OnAddr(_ *peer.Peer, msg *wire.MsgAddr) {
 	sp.server.addrManager.AddAddresses(msg.AddrList, sp.NA())
 }
 
-// OnSnodeList is invoked when a peer receives a snlp message.
+// OnSnodeListPing is invoked when a peer receives a snlp message.
 func (sp *serverPeer) OnSnodeListPing(_ *peer.Peer, msg *wire.MsgSnodeListPing) {
 	if msg == nil || msg.MsgSnodePing == nil {
 		return
@@ -651,11 +651,6 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			OnRead:          sp.OnRead,
 			OnWrite:         sp.OnWrite,
 			OnSnodeListPing: sp.OnSnodeListPing,
-
-			// Note: The reference client currently bans peers that send alerts
-			// not signed with its key.  We could verify against their key, but
-			// since the reference client is currently unwilling to support
-			// other implementations' alert messages, we will not relay theirs.
 			OnAlert: nil,
 		},
 		HostToNetAddress:  sp.server.addrManager.HostToNetAddress,
