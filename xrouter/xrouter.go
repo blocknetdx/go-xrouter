@@ -215,24 +215,27 @@ func (s *Client) AddServiceNode(node *sn.ServiceNode) {
 	}
 }
 
-func (s *Client) WaitForService(timeoutMsec uint32, service string, query int) error {
-	var msec uint32 = 0
+func (s *Client) WaitForService(ctx context.Context, service string, query int) error {
+	// Check all snode services for the requested service (and query count).
+	doneChan := make(chan struct{}, 1)
 	for {
 		s.mu.Lock()
 		snodes1, ok1 := s.services[addNamespace(service, true)]
 		snodes2, ok2 := s.services[addNamespace(service, false)]
 		s.mu.Unlock()
-		if !ok1 && !ok2 && len(snodes1) < query && len(snodes2) < query {
+		if (ok1 || ok2) && (len(snodes1) >= query || len(snodes2) >= query) {
+			doneChan <- struct{}{}
+		}
+
+		select {
+		case <-doneChan:
+			return nil // ready
+		case <-ctx.Done():
+			return errors.New("timeout waiting for service")
+		default:
 			time.Sleep(100 * time.Millisecond)
-			msec += 100
-			if msec >= timeoutMsec {
-				return errors.New("timeout waiting for service")
-			}
-		} else {
-			break
 		}
 	}
-	return nil
 }
 
 func (s *Client) GetBlockCountRaw(service string, query int) (string, []SnodeReply, error) {

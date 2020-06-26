@@ -39,8 +39,10 @@ func main() {
 	}
 	log.Printf("XRouter is ready")
 
+	ctx2, cancel2 := context.WithTimeout(ctx, 5 * time.Second)
+	defer cancel2()
 	queryCount := 1
-	if err := client.WaitForService(5000, "xr::BLOCK", queryCount); err != nil {
+	if err := client.WaitForService(ctx2, "xr::BLOCK", queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
 	}
