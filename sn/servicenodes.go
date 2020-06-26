@@ -39,6 +39,14 @@ type ServiceNodeConfig struct {
 	XBridge        []string                 `json:"xbridge,omitempty"`
 }
 
+var (
+	reWallets = regexp.MustCompile("\\s*wallets\\s*=\\s*([a-zA-Z0-9$,_]+)\\s*$")
+	rePlugins = regexp.MustCompile("\\s*plugins\\s*=\\s*([a-zA-Z0-9$,_]+)\\s*$")
+	reHost = regexp.MustCompile("\\s*host\\s*=\\s*([a-zA-Z0-9\\.]+)\\s*$")
+	rePort = regexp.MustCompile("\\s*port\\s*=\\s*(\\d+)\\s*$")
+	reTls = regexp.MustCompile("\\s*tls\\s*=\\s*([^\\s]+)\\s*$")
+)
+
 func NewServiceNode(pubkey *btcec.PublicKey, config string) *ServiceNode {
 	s := ServiceNode{}
 	s.pubkey = pubkey
@@ -53,11 +61,6 @@ func NewServiceNode(pubkey *btcec.PublicKey, config string) *ServiceNode {
 	confBytes := []byte(snconf.XRouter.Config)
 	buf := bytes.NewBuffer(confBytes)
 	scanner := bufio.NewScanner(buf)
-	reWallets := regexp.MustCompile("\\s*wallets\\s*=\\s*([a-zA-Z0-9$,_]+)\\s*$")
-	rePlugins := regexp.MustCompile("\\s*plugins\\s*=\\s*([a-zA-Z0-9$,_]+)\\s*$")
-	reHost := regexp.MustCompile("\\s*host\\s*=\\s*([a-zA-Z0-9\\.]+)\\s*$")
-	rePort := regexp.MustCompile("\\s*port\\s*=\\s*(\\d+)\\s*$")
-	reTls := regexp.MustCompile("\\s*tls\\s*=\\s*([^\\s]+)\\s*$")
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if strings.HasPrefix(line, "wallets=") {
