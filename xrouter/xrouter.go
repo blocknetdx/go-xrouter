@@ -221,16 +221,16 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 	return &s, nil
 }
 
-func (s *Client) AddServiceNode(node *sn.ServiceNode) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	// Only support EXR node connections
-	if !node.EXRCompatible() {
-		return
-	}
-	s.servicenodes = append(s.servicenodes, node)
-	for k, _ := range node.Services() {
-		s.services[k] = append(s.services[k], node)
+func (s *Client) WaitForXRouter(ctx context.Context) (bool, error) {
+	select {
+	case isReady := <-s.ready:
+		return isReady, nil
+	case <-s.interrupt:
+		return false, errors.New("XRouter timeout, interrupt received")
+	case <-s.quit:
+		return false, errors.New("XRouter timeout, shutdown requested")
+	case <-ctx.Done():
+		return false, errors.New("XRouter timeout, failed to connect")
 	}
 }
 
@@ -254,6 +254,19 @@ func (s *Client) WaitForService(ctx context.Context, service string, query int) 
 		default:
 			time.Sleep(100 * time.Millisecond)
 		}
+	}
+}
+
+func (s *Client) AddServiceNode(node *sn.ServiceNode) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// Only support EXR node connections
+	if !node.EXRCompatible() {
+		return
+	}
+	s.servicenodes = append(s.servicenodes, node)
+	for k, _ := range node.Services() {
+		s.services[k] = append(s.services[k], node)
 	}
 }
 
@@ -413,19 +426,6 @@ func (s *Client) SendTransaction(service string, txhex interface{}, query int) (
 	}
 }
 
-func (s *Client) WaitForXRouter(ctx context.Context) (bool, error) {
-	select {
-	case isReady := <-s.ready:
-		return isReady, nil
-	case <-s.interrupt:
-		return false, errors.New("XRouter timeout, interrupt received")
-	case <-s.quit:
-		return false, errors.New("XRouter timeout, shutdown requested")
-	case <-ctx.Done():
-		return false, errors.New("XRouter timeout, failed to connect")
-	}
-}
-
 // addKnownAddresses adds the given addresses to the set of known addresses to
 // the peer to prevent sending duplicate addresses.
 func (s *Client) addKnownAddresses(addresses []*wire.NetAddress) {
@@ -453,6 +453,39 @@ func (s *Client) snodesForService(service string, spv bool) ([]*sn.ServiceNode, 
 		return []*sn.ServiceNode{}, errors.New("no service nodes found for " + serv)
 	}
 	return snodes, nil
+}
+
+// MostCommonReply returns the most common reply from the reply list
+func MostCommonReply(replies []SnodeReply) (SnodeReply, error) {
+	snodeDataCounts := make(map[string]int)
+	for _, reply := range replies {
+		snodeDataCounts[string(reply.Hash)] += 1
+	}
+
+	snodeDataLen := len(snodeDataCounts)
+	if snodeDataLen == 0 { // no result
+		return SnodeReply{}, errors.New("no replies found")
+	}
+	if snodeDataLen == 1 { // single result
+		return replies[0], nil
+	}
+
+	// Return the most common result
+	lastCount := 0
+	lastHashStr := ""
+	for k, v := range snodeDataCounts {
+		if v > lastCount {
+			lastCount = v
+			lastHashStr = k
+		}
+	}
+	for _, reply := range replies {
+		if string(reply.Hash) == lastHashStr {
+			return reply, nil
+		}
+	}
+
+	return SnodeReply{}, errors.New("no replies found (b)")
 }
 
 // removeNamespace removes the XRouter namespace (e.g. xr::, xrs::)
@@ -566,37 +599,4 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 		return replies, errors.New("replies ")
 	}
 	return replies, nil
-}
-
-// MostCommonReply returns the most common reply from the reply list
-func MostCommonReply(replies []SnodeReply) (SnodeReply, error) {
-	snodeDataCounts := make(map[string]int)
-	for _, reply := range replies {
-		snodeDataCounts[string(reply.Hash)] += 1
-	}
-
-	snodeDataLen := len(snodeDataCounts)
-	if snodeDataLen == 0 { // no result
-		return SnodeReply{}, errors.New("no replies found")
-	}
-	if snodeDataLen == 1 { // single result
-		return replies[0], nil
-	}
-
-	// Return the most common result
-	lastCount := 0
-	lastHashStr := ""
-	for k, v := range snodeDataCounts {
-		if v > lastCount {
-			lastCount = v
-			lastHashStr = k
-		}
-	}
-	for _, reply := range replies {
-		if string(reply.Hash) == lastHashStr {
-			return reply, nil
-		}
-	}
-
-	return SnodeReply{}, errors.New("no replies found (b)")
 }
