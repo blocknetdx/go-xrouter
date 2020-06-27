@@ -46,15 +46,11 @@ func main() {
 		log.Printf("error: %v", err)
 		return
 	}
-	if _, replies, err := client.GetBlockCountRaw("xr::BLOCK", queryCount); err != nil {
+	if reply, err := client.GetBlockCount("xr::BLOCK", queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
 	} else {
-		if reply, err := xrouter.MostCommonReply(replies); err != nil {
-			log.Printf("error: %v", err)
-		} else {
-			log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
-		}
+		log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
 	}
 }
 

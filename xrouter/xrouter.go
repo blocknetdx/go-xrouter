@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/blocknetdx/go-xrouter/sn"
@@ -41,11 +42,29 @@ const (
 	semanticAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
 )
 
-// xrouter namespaces
+// XRouter namespaces
 const (
-	xr string = "xr::"
-	xrs string = "xrs::"
+	xr string = "xr"
+	xrs string = "xrs"
+	xrd string = "::"
 )
+
+// XRouter SPV calls
+const (
+	xrGetBlockCount string     = "xrGetBlockCount"
+	xrGetBlockHash string      = "xrGetBlockHash"
+	xrGetBlock string          = "xrGetBlock"
+	xrGetBlocks string         = "xrGetBlocks"
+	xrGetTransaction string    = "xrGetTransaction"
+	xrGetTransactions string   = "xrGetTransactions"
+	xrDecodeTransaction string = "xrDecodeTransaction"
+	xrSendTransaction string   = "xrSendTransaction"
+)
+
+// xrNS return the XRouter namespace with delimiter.
+func xrNS(ns string) string {
+	return ns + xrd
+}
 
 // normalizeVerString returns the passed string stripped of all characters which
 // are not valid according to the semantic versioning guidelines for pre-release
@@ -239,21 +258,159 @@ func (s *Client) WaitForService(ctx context.Context, service string, query int) 
 }
 
 func (s *Client) GetBlockCountRaw(service string, query int) (string, []SnodeReply, error) {
-	uid := uuid.New().String()
-	nsservice := addNamespace(service, true)
+	return callFetchWrapper(s, service, xrGetBlockCount, nil, query, true)
+}
 
-	// lookup service nodes for token
-	snodes, err := s.snodesForService(nsservice, true)
-	if len(snodes) <= 0 || err != nil {
-		return uid, []SnodeReply{}, fmt.Errorf("no services for token %s", nsservice)
+func (s *Client) GetBlockCount(service string, query int) (SnodeReply, error) {
+	if _, replies, err := s.GetBlockCountRaw(service, query); err != nil {
+		return SnodeReply{}, err
+	} else {
+		return MostCommonReply(replies)
 	}
+}
 
-	// fetch EXR compatible snodes
-	replies, err := fetchDataFromSnodes(&snodes, fmt.Sprintf("/xr/%s/xrGetBlockCount", removeNamespace(nsservice)), query)
-	if len(replies) <= 0 {
-		return uid, []SnodeReply{}, errors.New("no replies found")
+func (s *Client) GetBlockHashRaw(service string, block interface{}, query int) (string, []SnodeReply, error) {
+	var params []interface{}
+	if val, ok := block.(int); ok { // if int
+		params = append(params, val)
+	} else if val, ok := block.(string); ok { // if hex
+		params = append(params, val)
+	} else {
+		return "", nil, errors.New("unexpected type: only int and hex string supported")
 	}
-	return uid, replies, nil
+	return callFetchWrapper(s, service, xrGetBlockHash, params, query, true)
+}
+
+func (s *Client) GetBlockHash(service string, block interface{}, query int) (SnodeReply, error) {
+	if _, replies, err := s.GetBlockHashRaw(service, block, query); err != nil {
+		return SnodeReply{}, err
+	} else {
+		return MostCommonReply(replies)
+	}
+}
+
+func (s *Client) GetBlockRaw(service string, block interface{}, query int) (string, []SnodeReply, error) {
+	var params []interface{}
+	if val, ok := block.(int); ok { // if int
+		params = append(params, val)
+	} else if val, ok := block.(string); ok { // if hex
+		params = append(params, val)
+	} else {
+		return "", nil, errors.New("unexpected type: only int and hex string supported")
+	}
+	return callFetchWrapper(s, service, xrGetBlock, params, query, true)
+}
+
+func (s *Client) GetBlock(service string, block interface{}, query int) (SnodeReply, error) {
+	if _, replies, err := s.GetBlockRaw(service, block, query); err != nil {
+		return SnodeReply{}, err
+	} else {
+		return MostCommonReply(replies)
+	}
+}
+
+func (s *Client) GetBlocksRaw(service string, blocks []interface{}, query int) (string, []SnodeReply, error) {
+	// Check parameters
+	for _, v := range blocks {
+		if _, ok := v.(int); ok { // if int
+			continue
+		} else if _, ok := v.(string); ok { // if hex
+			continue
+		} else {
+			return "", nil, errors.New("unexpected type: only int and hex string supported")
+		}
+	}
+	return callFetchWrapper(s, service, xrGetBlocks, blocks, query, true)
+}
+
+func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (SnodeReply, error) {
+	if _, replies, err := s.GetBlocksRaw(service, blocks, query); err != nil {
+		return SnodeReply{}, err
+	} else {
+		return MostCommonReply(replies)
+	}
+}
+
+func (s *Client) GetTransactionRaw(service string, txid interface{}, query int) (string, []SnodeReply, error) {
+	var params []interface{}
+	if val, ok := txid.(int); ok { // if int
+		params = append(params, val)
+	} else if val, ok := txid.(string); ok { // if hex
+		params = append(params, val)
+	} else {
+		return "", nil, errors.New("unexpected type: only int and hex string supported")
+	}
+	return callFetchWrapper(s, service, xrGetTransaction, params, query, true)
+}
+
+func (s *Client) GetTransaction(service string, block interface{}, query int) (SnodeReply, error) {
+	if _, replies, err := s.GetTransactionRaw(service, block, query); err != nil {
+		return SnodeReply{}, err
+	} else {
+		return MostCommonReply(replies)
+	}
+}
+
+func (s *Client) GetTransactionsRaw(service string, txids []interface{}, query int) (string, []SnodeReply, error) {
+	// Check parameters
+	for _, v := range txids {
+		if _, ok := v.(int); ok { // if int
+			continue
+		} else if _, ok := v.(string); ok { // if hex
+			continue
+		} else {
+			return "", nil, errors.New("unexpected type: only int and hex string supported")
+		}
+	}
+	return callFetchWrapper(s, service, xrGetTransactions, txids, query, true)
+}
+
+func (s *Client) GetTransactions(service string, txids []interface{}, query int) (SnodeReply, error) {
+	if _, replies, err := s.GetTransactionsRaw(service, txids, query); err != nil {
+		return SnodeReply{}, err
+	} else {
+		return MostCommonReply(replies)
+	}
+}
+
+func (s *Client) DecodeTransactionRaw(service string, txhex interface{}, query int) (string, []SnodeReply, error) {
+	var params []interface{}
+	if val, ok := txhex.([]byte); ok { // if byte array
+		params = append(params, string(val))
+	} else if val, ok := txhex.(string); ok { // if hex
+		params = append(params, val)
+	} else {
+		return "", nil, errors.New("unexpected type: only byte array and hex string supported")
+	}
+	return callFetchWrapper(s, service, xrDecodeTransaction, params, query, true)
+}
+
+func (s *Client) DecodeTransaction(service string, txhex interface{}, query int) (SnodeReply, error) {
+	if _, replies, err := s.DecodeTransactionRaw(service, txhex, query); err != nil {
+		return SnodeReply{}, err
+	} else {
+		return MostCommonReply(replies)
+	}
+}
+
+func (s *Client) SendTransactionRaw(service string, txhex interface{}, query int) (string, []SnodeReply, error) {
+	var params []interface{}
+	if val, ok := txhex.([]byte); ok { // if byte array
+		params = append(params, string(val))
+	} else if val, ok := txhex.(string); ok { // if hex
+		params = append(params, val)
+	} else {
+		return "", nil, errors.New("unexpected type: only byte array and hex string supported")
+	}
+	return callFetchWrapper(s, service, xrSendTransaction, params, query, true)
+}
+
+func (s *Client) SendTransaction(service string, txhex interface{}, query int) (SnodeReply, error) {
+	if _, replies, err := s.SendTransactionRaw(service, txhex, query); err != nil {
+		return SnodeReply{}, err
+	} else {
+		return MostCommonReply(replies)
+	}
 }
 
 func (s *Client) WaitForXRouter(ctx context.Context) (bool, error) {
@@ -300,26 +457,51 @@ func (s *Client) snodesForService(service string, spv bool) ([]*sn.ServiceNode, 
 
 // removeNamespace removes the XRouter namespace (e.g. xr::, xrs::)
 func removeNamespace(ns string) string {
-	if strings.HasPrefix(ns, xr) {
-		return strings.TrimPrefix(ns, xr)
-	} else if strings.HasPrefix(ns, xrs) {
-		return strings.TrimPrefix(ns, xrs)
+	if strings.HasPrefix(ns, xrNS(xr)) {
+		return strings.TrimPrefix(ns, xrNS(xr))
+	} else if strings.HasPrefix(ns, xrNS(xrs)) {
+		return strings.TrimPrefix(ns, xrNS(xrs))
 	}
 	return ns
 }
 
 // addNamespace adds the XRouter namespace (e.g. xr::, xrs::)
 func addNamespace(ns string, spv bool) string {
-	if spv && !strings.HasPrefix(ns, xr) {
+	if spv && !strings.HasPrefix(ns, xrNS(xr)) {
 		return xr + ns
-	} else if !spv && !strings.HasPrefix(ns, xrs) {
+	} else if !spv && !strings.HasPrefix(ns, xrNS(xrs)) {
 		return xrs + ns
 	}
 	return ns
 }
 
+// callFetchWrapper Performs a lookup on the requested XRouter service and submits the request
+// to the desired number of snodes.
+func callFetchWrapper(s *Client, service string, xrfunc string, params []interface{}, query int, spvcall bool) (string, []SnodeReply, error) {
+	uid := uuid.New().String()
+	nsservice := addNamespace(service, true)
+
+	// lookup service nodes for token
+	snodes, err := s.snodesForService(nsservice, true)
+	if len(snodes) <= 0 || err != nil {
+		return uid, []SnodeReply{}, fmt.Errorf("no services for token %s", nsservice)
+	}
+
+	// fetch EXR compatible snodes
+	xrcall := xr
+	if !spvcall {
+		xrcall = xrs
+	}
+	endpoint := fmt.Sprintf("/%s/%s/%s", xrcall, removeNamespace(nsservice), xrfunc)
+	replies, err := fetchDataFromSnodes(&snodes, endpoint, params, query)
+	if len(replies) <= 0 {
+		return uid, []SnodeReply{}, errors.New("no replies found")
+	}
+	return uid, replies, nil
+}
+
 // fetchDataFromSnodes queries N number of service nodes and returns the results.
-func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, query int) ([]SnodeReply, error) {
+func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
 	// TODO Blocknet penalize bad snodes
 	var replies []SnodeReply
 	queried := 0
@@ -328,16 +510,30 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, query int) ([]S
 			continue
 		}
 
+		var err error
 		strPubkey := hex.EncodeToString(snode.Pubkey().SerializeCompressed())
 
-		res, err := http.Get(snode.EndpointPath(path))
+		// Prep parameters for post
+		var dataPost []byte
+		if len(params) > 0 {
+			dataPost, err = json.Marshal(params)
+			if err != nil {
+				return replies, err
+			}
+		}
+		bufPost := bytes.NewBuffer(dataPost)
+
+		// Post parameters along with the request
+		res, err := http.Post(snode.EndpointPath(path), "application/json", bufPost)
 		if err != nil {
 			log.Printf("failed to connect to snode %v %v", strPubkey, err)
+			queried += 1
 			continue
 		}
 		if res.StatusCode != http.StatusOK {
 			log.Printf("bad response from snode: %v %v", strPubkey, res.Status)
 			_ = res.Body.Close()
+			queried += 1
 			continue
 		}
 
@@ -346,6 +542,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, query int) ([]S
 		_ = res.Body.Close()
 		if err != nil {
 			log.Printf("unable to read response from snode %v", strPubkey)
+			queried += 1
 			continue
 		}
 
@@ -353,6 +550,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, query int) ([]S
 		hash := sha1.New()
 		_, err = hash.Write(data)
 		if err != nil {
+			queried += 1
 			continue
 		}
 
