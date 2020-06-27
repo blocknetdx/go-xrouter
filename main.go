@@ -18,17 +18,20 @@ import (
 func main() {
 	log.SetOutput(os.Stdout)
 
+	// Instantiate the xrouter client
 	client, err := xrouter.NewClient(blockcfg.MainnetParams)
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
+	// Start xrouter (this will begin querying the network)
 	client.Start()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
 	defer shutdown(client)
 
+	// Wait for xrouter to be ready
 	if ready, err := client.WaitForXRouter(ctx); err != nil || !ready {
 		errStr := ""
 		if err != nil {
@@ -39,6 +42,7 @@ func main() {
 	}
 	log.Printf("XRouter is ready")
 
+	// Wait for our desired service to be ready, in this case we want to query the BLOCK oracle
 	ctx2, cancel2 := context.WithTimeout(ctx, 5 * time.Second)
 	defer cancel2()
 	queryCount := 1
@@ -46,6 +50,7 @@ func main() {
 		log.Printf("error: %v", err)
 		return
 	}
+	// Obtain BLOCK token chain height
 	if reply, err := client.GetBlockCount("xr::BLOCK", queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
