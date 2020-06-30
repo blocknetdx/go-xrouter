@@ -1,4 +1,4 @@
-GO-XROUTER Library
+go-xrouter Library
 =====================================
 
 The go-xrouter library allows go developers and ethereum developers to query blockchain data and oracles via Blocknet's XRouter interoperability protocol. Get started with XRouter without virtual machines or smart contracts in a few lines of code. The library queries the Blocknet network, obtains a list of service nodes (service providers), and submits requests to those service providers' oracles and microservices.
