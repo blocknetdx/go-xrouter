@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"log"
@@ -47,7 +48,7 @@ var (
 	reTls = regexp.MustCompile("\\s*tls\\s*=\\s*([^\\s]+)\\s*$")
 )
 
-func NewServiceNode(pubkey *btcec.PublicKey, config string) *ServiceNode {
+func NewServiceNode(pubkey *btcec.PublicKey, config string) (*ServiceNode, error) {
 	s := ServiceNode{}
 	s.pubkey = pubkey
 	s.services = make(map[string]bool)
@@ -55,7 +56,8 @@ func NewServiceNode(pubkey *btcec.PublicKey, config string) *ServiceNode {
 	// Parse config
 	var snconf ServiceNodeConfig
 	if err := json.Unmarshal([]byte(config), &snconf); err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return nil, errors.New("failed to parse the service node config")
 	}
 
 	confBytes := []byte(snconf.XRouter.Config)
@@ -115,7 +117,7 @@ func NewServiceNode(pubkey *btcec.PublicKey, config string) *ServiceNode {
 		s.endpoint = proto + s.host + ":" + strconv.Itoa(s.port)
 	}
 
-	return &s
+	return &s, nil
 }
 
 func (s *ServiceNode) Pubkey() *btcec.PublicKey {

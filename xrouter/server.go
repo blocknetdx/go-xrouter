@@ -299,8 +299,9 @@ func (sp *serverPeer) OnSnodeListPing(_ *peer.Peer, msg *wire.MsgSnodeListPing) 
 	if msg == nil || msg.MsgSnodePing == nil {
 		return
 	}
-	snode := sn.NewServiceNode(msg.PingPubkey, msg.Config)
-	sp.server.AddServiceNode(snode)
+	if snode, err := sn.NewServiceNode(msg.PingPubkey, msg.Config); err == nil {
+		sp.server.AddServiceNode(snode)
+	}
 }
 
 // OnRead is invoked when a peer receives a message and it is used to update
@@ -713,8 +714,8 @@ func (s *Client) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
 		for {
 			s.mu.Lock()
 			if len(s.servicenodes) >= 1 {
-				s.ready <- true
 				s.mu.Unlock()
+				s.ready <- true
 				break
 			}
 			s.mu.Unlock()
