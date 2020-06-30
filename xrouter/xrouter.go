@@ -166,6 +166,7 @@ type Client struct {
 	bytesSent      uint64 // Total bytes sent by all peers since start
 }
 
+// NewClient creates and returns a new XRouter client.
 func NewClient(params chaincfg.Params) (*Client, error) {
 	s := Client{}
 	s.params = &params
@@ -245,6 +246,10 @@ func (s *Client) WaitForXRouter(ctx context.Context) (bool, error) {
 	}
 }
 
+// WaitForServices will block until the specified services become available or the
+// context timeout occurs. This is useful to prevent code from executing until the
+// network service is found. By default this method will check for the existence
+// of a service every 100 milliseconds.
 func (s *Client) WaitForServices(ctx context.Context, services []string, query int) error {
 	// Check all snode services for the requested service (and query count).
 	doneChan := make(chan struct{}, 1)
@@ -273,6 +278,8 @@ func (s *Client) WaitForServices(ctx context.Context, services []string, query i
 	}
 }
 
+// AddServiceNode adds the specified service node to the client's list. Only EXR snodes
+// are added. Any services that do not support Enterprise XRouter are not added.
 func (s *Client) AddServiceNode(node *sn.ServiceNode) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -324,10 +331,14 @@ func (s *Client) HasSPVService(service string) bool {
 	return ok
 }
 
+// GetBlockCountRaw SPV call fetches the block count (chain height) of the specified token.
+// Returns all replies.
 func (s *Client) GetBlockCountRaw(service string, query int) (string, []SnodeReply, error) {
 	return callFetchWrapper(s, service, xrGetBlockCount, nil, query, xr)
 }
 
+// GetBlockCount SPV call fetches the block count (chain height) of the specified token.
+// Returns the most common reply.
 func (s *Client) GetBlockCount(service string, query int) (SnodeReply, error) {
 	if _, replies, err := s.GetBlockCountRaw(service, query); err != nil {
 		return SnodeReply{}, err
@@ -336,6 +347,8 @@ func (s *Client) GetBlockCount(service string, query int) (SnodeReply, error) {
 	}
 }
 
+// GetBlockHashRaw SPV call fetches the block hash with the specified block number.
+// Returns all replies.
 func (s *Client) GetBlockHashRaw(service string, block interface{}, query int) (string, []SnodeReply, error) {
 	var params []interface{}
 	if val, ok := block.(int); ok { // if int
@@ -348,6 +361,8 @@ func (s *Client) GetBlockHashRaw(service string, block interface{}, query int) (
 	return callFetchWrapper(s, service, xrGetBlockHash, params, query, xr)
 }
 
+// GetBlockHash SPV call fetches the block hash with the specified block number.
+// Returns the most common reply.
 func (s *Client) GetBlockHash(service string, block interface{}, query int) (SnodeReply, error) {
 	if _, replies, err := s.GetBlockHashRaw(service, block, query); err != nil {
 		return SnodeReply{}, err
@@ -356,6 +371,7 @@ func (s *Client) GetBlockHash(service string, block interface{}, query int) (Sno
 	}
 }
 
+// GetBlockRaw fetches the block data by block hash or block height. Returns all replies.
 func (s *Client) GetBlockRaw(service string, block interface{}, query int) (string, []SnodeReply, error) {
 	var params []interface{}
 	if val, ok := block.(int); ok { // if int
@@ -368,6 +384,8 @@ func (s *Client) GetBlockRaw(service string, block interface{}, query int) (stri
 	return callFetchWrapper(s, service, xrGetBlock, params, query, xr)
 }
 
+// GetBlock fetches the block data by block hash or block height. Returns the most common
+// reply.
 func (s *Client) GetBlock(service string, block interface{}, query int) (SnodeReply, error) {
 	if _, replies, err := s.GetBlockRaw(service, block, query); err != nil {
 		return SnodeReply{}, err
@@ -376,6 +394,7 @@ func (s *Client) GetBlock(service string, block interface{}, query int) (SnodeRe
 	}
 }
 
+// GetBlocks fetches the blocks by block hash or block height. Returns all replies.
 func (s *Client) GetBlocksRaw(service string, blocks []interface{}, query int) (string, []SnodeReply, error) {
 	// Check parameters
 	for _, v := range blocks {
@@ -390,6 +409,8 @@ func (s *Client) GetBlocksRaw(service string, blocks []interface{}, query int) (
 	return callFetchWrapper(s, service, xrGetBlocks, blocks, query, xr)
 }
 
+// GetBlocks fetches the blocks by block hash or block height. Returns the most common
+// reply.
 func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (SnodeReply, error) {
 	if _, replies, err := s.GetBlocksRaw(service, blocks, query); err != nil {
 		return SnodeReply{}, err
@@ -398,6 +419,7 @@ func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (Sno
 	}
 }
 
+// GetTransactionRaw fetches the transaction by hash or transaction id. Returns all replies.
 func (s *Client) GetTransactionRaw(service string, txid interface{}, query int) (string, []SnodeReply, error) {
 	var params []interface{}
 	if val, ok := txid.(int); ok { // if int
@@ -410,6 +432,8 @@ func (s *Client) GetTransactionRaw(service string, txid interface{}, query int) 
 	return callFetchWrapper(s, service, xrGetTransaction, params, query, xr)
 }
 
+// GetTransaction fetches the transaction by hash or transaction id. Returns the most common
+// reply.
 func (s *Client) GetTransaction(service string, block interface{}, query int) (SnodeReply, error) {
 	if _, replies, err := s.GetTransactionRaw(service, block, query); err != nil {
 		return SnodeReply{}, err
@@ -418,6 +442,7 @@ func (s *Client) GetTransaction(service string, block interface{}, query int) (S
 	}
 }
 
+// GetTransactionsRaw fetches the transactions by hash or transaction id. Returns all replies.
 func (s *Client) GetTransactionsRaw(service string, txids []interface{}, query int) (string, []SnodeReply, error) {
 	// Check parameters
 	for _, v := range txids {
@@ -432,6 +457,8 @@ func (s *Client) GetTransactionsRaw(service string, txids []interface{}, query i
 	return callFetchWrapper(s, service, xrGetTransactions, txids, query, xr)
 }
 
+// GetTransactions fetches the transactions by hash or transaction id. Returns the most common
+// reply.
 func (s *Client) GetTransactions(service string, txids []interface{}, query int) (SnodeReply, error) {
 	if _, replies, err := s.GetTransactionsRaw(service, txids, query); err != nil {
 		return SnodeReply{}, err
@@ -439,7 +466,7 @@ func (s *Client) GetTransactions(service string, txids []interface{}, query int)
 		return MostCommonReply(replies)
 	}
 }
-
+// DecodeTransactionRaw fetches the transaction data by hash or transaction id. Returns all replies.
 func (s *Client) DecodeTransactionRaw(service string, txhex interface{}, query int) (string, []SnodeReply, error) {
 	var params []interface{}
 	if val, ok := txhex.([]byte); ok { // if byte array
@@ -452,6 +479,8 @@ func (s *Client) DecodeTransactionRaw(service string, txhex interface{}, query i
 	return callFetchWrapper(s, service, xrDecodeTransaction, params, query, xr)
 }
 
+// DecodeTransaction fetches the transaction data by hash or transaction id. Returns the most common
+// reply.
 func (s *Client) DecodeTransaction(service string, txhex interface{}, query int) (SnodeReply, error) {
 	if _, replies, err := s.DecodeTransactionRaw(service, txhex, query); err != nil {
 		return SnodeReply{}, err
@@ -460,6 +489,7 @@ func (s *Client) DecodeTransaction(service string, txhex interface{}, query int)
 	}
 }
 
+// SendTransactionRaw submits a transaction to the network of the specified token. Returns all replies.
 func (s *Client) SendTransactionRaw(service string, txhex interface{}, query int) (string, []SnodeReply, error) {
 	var params []interface{}
 	if val, ok := txhex.([]byte); ok { // if byte array
@@ -472,6 +502,8 @@ func (s *Client) SendTransactionRaw(service string, txhex interface{}, query int
 	return callFetchWrapper(s, service, xrSendTransaction, params, query, xr)
 }
 
+// SendTransaction submits a transaction to the network of the specified token. Returns the most common
+// reply.
 func (s *Client) SendTransaction(service string, txhex interface{}, query int) (SnodeReply, error) {
 	if _, replies, err := s.SendTransactionRaw(service, txhex, query); err != nil {
 		return SnodeReply{}, err
@@ -514,6 +546,7 @@ func (s *Client) addressKnown(na *wire.NetAddress) bool {
 	return exists
 }
 
+// snodesForService returns all service nodes that support the specified service.
 func (s *Client) snodesForService(service, ns string) ([]*sn.ServiceNode, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
