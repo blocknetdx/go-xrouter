@@ -245,15 +245,20 @@ func (s *Client) WaitForXRouter(ctx context.Context) (bool, error) {
 	}
 }
 
-func (s *Client) WaitForService(ctx context.Context, service string, query int) error {
+func (s *Client) WaitForServices(ctx context.Context, services []string, query int) error {
 	// Check all snode services for the requested service (and query count).
 	doneChan := make(chan struct{}, 1)
 	for {
-		s.mu.Lock()
-		snodes1, ok1 := s.services[addNamespace(service, xr)]
-		snodes2, ok2 := s.services[addNamespace(service, xrs)]
-		s.mu.Unlock()
-		if (ok1 || ok2) && (len(snodes1) >= query || len(snodes2) >= query) {
+		ready := true
+		for _, service := range services {
+			s.mu.Lock()
+			snodes1, ok1 := s.services[addNamespace(service, xr)]
+			snodes2, ok2 := s.services[addNamespace(service, xrs)]
+			s.mu.Unlock()
+			ready = ready && (ok1 || ok2) && (len(snodes1) >= query || len(snodes2) >= query)
+		}
+
+		if ready { // Notify channel if all services are ready
 			doneChan <- struct{}{}
 		}
 
@@ -475,6 +480,22 @@ func (s *Client) SendTransaction(service string, txhex interface{}, query int) (
 	}
 }
 
+// CallServiceRaw submits requests to [query] number of endpoints. All replies are
+// returned.
+func (s *Client) CallServiceRaw(service string, params []interface{}, query int) (string, []SnodeReply, error) {
+	return callFetchWrapper(s, service, xrsService, params, query, xrs)
+}
+
+// CallService submits requests to [query] number of endpoints. The most common reply
+// is returned.
+func (s *Client) CallService(service string, params []interface{}, query int) (SnodeReply, error) {
+	if _, replies, err := s.CallServiceRaw(service, params, query); err != nil {
+		return SnodeReply{}, err
+	} else {
+		return MostCommonReply(replies)
+	}
+}
+
 // addKnownAddresses adds the given addresses to the set of known addresses to
 // the peer to prevent sending duplicate addresses.
 func (s *Client) addKnownAddresses(addresses []*wire.NetAddress) {
@@ -644,7 +665,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 	}
 
 	if len(replies) <= 0 {
-		return replies, errors.New("replies ")
+		return replies, errors.New("no replies found")
 	}
 	return replies, nil
 }

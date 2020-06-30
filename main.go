@@ -42,20 +42,39 @@ func main() {
 	}
 	log.Printf("XRouter is ready")
 
-	// Wait for our desired service to be ready, in this case we want to query the BLOCK oracle
+	// List all network services
+	//for _, service := range client.ListNetworkServices() {
+	//	log.Printf(service)
+	//}
+
 	ctx2, cancel2 := context.WithTimeout(ctx, 5 * time.Second)
 	defer cancel2()
 	queryCount := 1
-	if err := client.WaitForService(ctx2, "xr::BLOCK", queryCount); err != nil {
+	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice","xr::BTC"}, queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
 	}
-	// Obtain BLOCK token chain height
-	if reply, err := client.GetBlockCount("xr::BLOCK", queryCount); err != nil {
-		log.Printf("error: %v", err)
-		return
-	} else {
-		log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
+
+	{
+		// Query the price oracle to obtain Bitcoin's price in USD
+		var params []interface{}
+		params = append(params, "BTC", "USD")
+		if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
+			log.Printf("error: %v", err)
+			return
+		} else {
+			log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
+		}
+	}
+
+	{
+		// Query the BTC oracle to obtain the chain height
+		if reply, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
+			log.Printf("error: %v", err)
+			return
+		} else {
+			log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
+		}
 	}
 }
 
