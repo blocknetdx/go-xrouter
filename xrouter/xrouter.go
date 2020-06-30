@@ -501,9 +501,9 @@ func removeNamespace(ns string) string {
 // addNamespace adds the XRouter namespace (e.g. xr::, xrs::)
 func addNamespace(ns string, spv bool) string {
 	if spv && !strings.HasPrefix(ns, xrNS(xr)) {
-		return xr + ns
+		return xrNS(xr) + ns
 	} else if !spv && !strings.HasPrefix(ns, xrNS(xrs)) {
-		return xrs + ns
+		return xrNS(xrs) + ns
 	}
 	return ns
 }
