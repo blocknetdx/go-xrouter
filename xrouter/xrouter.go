@@ -270,6 +270,17 @@ func (s *Client) AddServiceNode(node *sn.ServiceNode) {
 	}
 }
 
+// ListNetworkServices lists all known SPV and XCloud network services (xr and xrs).
+func (s *Client) ListNetworkServices() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var services []string
+	for k, _ := range s.services {
+		services = append(services, k)
+	}
+	return services
+}
+
 func (s *Client) GetBlockCountRaw(service string, query int) (string, []SnodeReply, error) {
 	return callFetchWrapper(s, service, xrGetBlockCount, nil, query, true)
 }
