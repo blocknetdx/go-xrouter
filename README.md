@@ -16,7 +16,7 @@ Go 1.14+ is required.
 ### Step 1. Pull the library into your go workspace
 
 ```
-go get https://github.com/blocknetdx/go-xrouter
+go get -d github.com/blocknetdx/go-xrouter
 ```
 
 ### Step 2. Create go application "main.go"
