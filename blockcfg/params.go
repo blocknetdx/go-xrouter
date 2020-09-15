@@ -47,7 +47,6 @@ var TestnetParams = chaincfg.Params{
 	Net:         wire.TestNet3,
 	DefaultPort: "41474",
 	DNSSeeds: []chaincfg.DNSSeed{
-		{"3.16.3.126", false},
 		{"18.224.130.185", false},
 		{"18.213.44.27", false},
 		{"34.196.102.239", false},
