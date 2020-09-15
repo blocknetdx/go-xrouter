@@ -18,8 +18,13 @@ import (
 func main() {
 	log.SetOutput(os.Stdout)
 
+	config := blockcfg.MainnetParams
+	// Manually set seed node (via ip or dns)
+	//config.DNSSeeds = []chaincfg.DNSSeed{
+	//	{"seed1.blocknet.co", false}, // optional direct connect to trusted node
+	//}
 	// Instantiate the xrouter client
-	client, err := xrouter.NewClient(blockcfg.MainnetParams)
+	client, err := xrouter.NewClient(config)
 	if err != nil {
 		log.Println(err.Error())
 		return
