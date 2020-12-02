@@ -642,12 +642,17 @@ func callFetchWrapper(s *Client, service string, xrfunc string, params []interfa
 }
 
 // fetchDataFromSnodes queries N number of service nodes and returns the results.
+type FetchDataError struct {
+	Error  string `json:"error"`
+	Code   int    `json:"code"`
+}
 func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
 	// TODO Blocknet penalize bad snodes
 	var replies []SnodeReply
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	queried := 0
+	validResults := 0
 	for _, snode := range *snodes {
 		if !snode.EXRCompatible() {
 			continue
@@ -710,6 +715,19 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 				return
 			}
 
+			// Check for json error and try another snode if there's an error
+			var jsonErr FetchDataError
+			if err := json.Unmarshal(data, &jsonErr); err == nil {
+				mu.Lock()
+				queried--
+				mu.Unlock()
+				// store this error below (no return here)
+			} else {
+				mu.Lock()
+				validResults++
+				mu.Unlock()
+			}
+
 			// Store reply and exit if reply count is met
 			mu.Lock()
 			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
@@ -720,7 +738,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 		if queried >= query {
 			wg.Wait()
 		}
-		if len(replies) >= query {
+		if validResults >= query {
 			break // have all our data
 		}
 	}
