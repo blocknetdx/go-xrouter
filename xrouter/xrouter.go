@@ -141,7 +141,7 @@ var cfg = Config{
 
 type Client struct {
 	params         *chaincfg.Params
-	servicenodes   []*sn.ServiceNode
+	servicenodes   map[string]*sn.ServiceNode
 	services       map[string][]*sn.ServiceNode
 	mu             sync.Mutex
 	wg             sync.WaitGroup
@@ -170,6 +170,7 @@ type Client struct {
 func NewClient(params chaincfg.Params) (*Client, error) {
 	s := Client{}
 	s.params = &params
+	s.servicenodes = make(map[string]*sn.ServiceNode)
 	s.services = make(map[string][]*sn.ServiceNode)
 	s.mu = sync.Mutex{}
 	s.addrManager = addrmgr.New(cfg.DataDir, btcdLookup)
@@ -287,7 +288,12 @@ func (s *Client) AddServiceNode(node *sn.ServiceNode) {
 	if !node.EXRCompatible() {
 		return
 	}
-	s.servicenodes = append(s.servicenodes, node)
+	// Check if snode already exists
+	pkey := hex.EncodeToString(node.Pubkey().SerializeCompressed())
+	if _, ok := s.servicenodes[pkey]; ok {
+		return
+	}
+	s.servicenodes[pkey] = node
 	for k, _ := range node.Services() {
 		s.services[k] = append(s.services[k], node)
 	}
