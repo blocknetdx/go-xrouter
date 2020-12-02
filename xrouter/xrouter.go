@@ -645,63 +645,86 @@ func callFetchWrapper(s *Client, service string, xrfunc string, params []interfa
 func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
 	// TODO Blocknet penalize bad snodes
 	var replies []SnodeReply
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 	queried := 0
 	for _, snode := range *snodes {
 		if !snode.EXRCompatible() {
 			continue
 		}
 
-		var err error
-		strPubkey := hex.EncodeToString(snode.Pubkey().SerializeCompressed())
+		queried++
+		wg.Add(1)
 
-		// Prep parameters for post
-		var dataPost []byte
-		if len(params) > 0 {
-			dataPost, err = json.Marshal(params)
-			if err != nil {
-				return replies, err
+		// Query from as many snodes as possible up to requested query count
+		go func(snode *sn.ServiceNode) {
+			defer wg.Done()
+			var err error
+			strPubkey := hex.EncodeToString(snode.Pubkey().SerializeCompressed())
+
+			// Prep parameters for post
+			var dataPost []byte
+			if len(params) > 0 {
+				dataPost, err = json.Marshal(params)
+				if err != nil {
+					mu.Lock()
+					queried--
+					mu.Unlock()
+					return
+				}
 			}
-		}
-		bufPost := bytes.NewBuffer(dataPost)
+			bufPost := bytes.NewBuffer(dataPost)
 
-		// Post parameters along with the request
-		res, err := http.Post(snode.EndpointPath(path), "application/json", bufPost)
-		if err != nil {
-			log.Printf("failed to connect to snode %v %v", strPubkey, err)
-			queried += 1
-			continue
-		}
-		if res.StatusCode != http.StatusOK {
-			log.Printf("bad response from snode: %v %v", strPubkey, res.Status)
+			// Post parameters along with the request
+			res, err := http.Post(snode.EndpointPath(path), "application/json", bufPost)
+			if err != nil {
+				log.Printf("failed to connect to snode %v %v", strPubkey, err)
+				mu.Lock()
+				queried--
+				mu.Unlock()
+				return
+			}
+			if res.StatusCode != http.StatusOK {
+				log.Printf("bad response from snode: %v %v", strPubkey, res.Status)
+				_ = res.Body.Close()
+			}
+
+			// Read response data, hash it and record unique responses
+			data, err := ioutil.ReadAll(res.Body)
 			_ = res.Body.Close()
-			queried += 1
-			continue
-		}
+			if err != nil {
+				log.Printf("unable to read response from snode %v", strPubkey)
+				mu.Lock()
+				queried--
+				mu.Unlock()
+				return
+			}
 
-		// Read response data, hash it and record unique responses
-		data, err := ioutil.ReadAll(res.Body)
-		_ = res.Body.Close()
-		if err != nil {
-			log.Printf("unable to read response from snode %v", strPubkey)
-			queried += 1
-			continue
-		}
+			// Compute hash for reply
+			hash := sha1.New()
+			_, err = hash.Write(data)
+			if err != nil {
+				mu.Lock()
+				queried--
+				mu.Unlock()
+				return
+			}
 
-		// Compute hash for reply
-		hash := sha1.New()
-		_, err = hash.Write(data)
-		if err != nil {
-			queried += 1
-			continue
-		}
+			// Store reply and exit if reply count is met
+			mu.Lock()
+			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
+			mu.Unlock()
+		}(snode)
 
-		// Store reply and exit if reply count is met
-		replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
-		queried += 1
+		// Wait for error, if error try another snode.
 		if queried >= query {
-			break
+			wg.Wait()
+		}
+		if len(replies) >= query {
+			break // have all our data
 		}
 	}
+	wg.Wait()
 
 	if len(replies) <= 0 {
 		return replies, errors.New("no replies found")
