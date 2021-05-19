@@ -9,7 +9,6 @@ package xrouter
 import (
 	"errors"
 	"fmt"
-	"github.com/blocknetdx/go-xrouter/sn"
 	"log"
 	"net"
 	"strconv"
@@ -17,6 +16,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/blocknetdx/go-xrouter/sn"
 
 	"github.com/btcsuite/btcd/addrmgr"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -72,7 +73,7 @@ func btcdDial(addr net.Addr) (net.Conn, error) {
 	if strings.Contains(addr.String(), ".onion:") {
 		return nil, errors.New("tor addresses are not supported")
 	}
-	return net.DialTimeout(addr.Network(), addr.String(), time.Second * 30)
+	return net.DialTimeout(addr.Network(), addr.String(), time.Second*30)
 }
 
 // broadcastMsg provides the ability to house a bitcoin message to be broadcast
@@ -652,7 +653,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			OnRead:          sp.OnRead,
 			OnWrite:         sp.OnWrite,
 			OnSnodeListPing: sp.OnSnodeListPing,
-			OnAlert: nil,
+			OnAlert:         nil,
 		},
 		HostToNetAddress:  sp.server.addrManager.HostToNetAddress,
 		Proxy:             "",
@@ -722,7 +723,7 @@ func (s *Client) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
 			// wait a second for snode entries
 			time.Sleep(1 * time.Second)
 			curr := time.Now()
-			if curr.Second() - start.Second() >= 5 { // max wait 5 seconds
+			if curr.Second()-start.Second() >= 5 { // max wait 5 seconds
 				s.ready <- false // timeout
 				break
 			}
@@ -903,6 +904,7 @@ func (s *Client) Start() {
 // Stop gracefully shuts down the server by stopping and disconnecting all
 // peers and the main listener.
 func (s *Client) Stop() error {
+	s.banSnodesStore.Flush()
 	// Make sure this only happens once.
 	if atomic.AddInt32(&s.shutdown, 1) != 1 {
 		log.Printf("Server is already in the process of shutting down")
