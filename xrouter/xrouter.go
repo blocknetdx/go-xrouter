@@ -12,19 +12,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/blocknetdx/go-xrouter/sn"
 	"github.com/btcsuite/btcd/addrmgr"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/connmgr"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/google/uuid"
-	"io/ioutil"
-	"log"
-	"net"
-	"net/http"
-	"strings"
-	"sync"
-	"time"
+	"github.com/steveyen/gkvlite"
 )
 
 // These constants define the application version and follow the semantic
@@ -52,19 +55,24 @@ const (
 
 // XRouter SPV calls
 const (
-	xrGetBlockCount string     = "xrGetBlockCount"
-	xrGetBlockHash string      = "xrGetBlockHash"
-	xrGetBlock string          = "xrGetBlock"
-	xrGetBlocks string         = "xrGetBlocks"
-	xrGetTransaction string    = "xrGetTransaction"
-	xrGetTransactions string   = "xrGetTransactions"
+	xrGetBlockCount     string = "xrGetBlockCount"
+	xrGetBlockHash      string = "xrGetBlockHash"
+	xrGetBlock          string = "xrGetBlock"
+	xrGetBlocks         string = "xrGetBlocks"
+	xrGetTransaction    string = "xrGetTransaction"
+	xrGetTransactions   string = "xrGetTransactions"
 	xrDecodeTransaction string = "xrDecodeTransaction"
-	xrSendTransaction string   = "xrSendTransaction"
+	xrSendTransaction   string = "xrSendTransaction"
 )
 
 // XRouter Non-SPV calls
 const (
 	xrsService string = "xrService"
+)
+
+// snode banning
+const (
+	defaultBannedFile = "banned_snodes.gkvlite"
 )
 
 // xrNS return the XRouter namespace with delimiter.
@@ -74,7 +82,7 @@ func xrNS(ns string) string {
 
 // isNS returns true if the service matches the namespace.
 func isNS(service, ns string) bool {
-	return strings.HasPrefix(service, ns + xrdelim)
+	return strings.HasPrefix(service, ns+xrdelim)
 }
 
 // normalizeVerString returns the passed string stripped of all characters which
@@ -111,20 +119,20 @@ func version() string {
 
 type SnodeReply struct {
 	Pubkey []byte
-	Hash []byte
-	Reply []byte
+	Hash   []byte
+	Reply  []byte
 }
 
 type Config struct {
-	MaxPeers int
-	SimNet bool
+	MaxPeers       int
+	SimNet         bool
 	DisableBanning bool
-	BanThreshold uint32
-	BanDuration time.Duration
-	DataDir string
-	AddPeers []string
-	ConnectPeers []string
-	whitelists []*net.IPNet
+	BanThreshold   uint32
+	BanDuration    time.Duration
+	DataDir        string
+	AddPeers       []string
+	ConnectPeers   []string
+	whitelists     []*net.IPNet
 }
 
 var cfg = Config{
@@ -151,6 +159,8 @@ type Client struct {
 	donePeers      chan *serverPeer
 	banPeers       chan *serverPeer
 	broadcast      chan broadcastMsg
+	banSnodesStore *gkvlite.Store
+	banSnodes      *gkvlite.Collection
 	quit           chan struct{}
 	ready          chan bool
 	query          chan interface{}
@@ -158,7 +168,7 @@ type Client struct {
 	knownAddresses map[string]struct{}
 	started        int32
 	shutdown       int32
-	shutdownSched  int32 // list of blacklisted substrings by which to filter user agents
+	shutdownSched  int32    // list of blacklisted substrings by which to filter user agents
 	agentBlacklist []string // list of whitelisted user agent substrings, no whitelisting will be applied if the list is empty or nil
 	agentWhitelist []string
 	startupTime    int64
@@ -167,7 +177,7 @@ type Client struct {
 }
 
 // NewClient creates and returns a new XRouter client.
-func NewClient(params chaincfg.Params) (*Client, error) {
+func NewClient(params chaincfg.Params, bannedFile string) (*Client, error) {
 	s := Client{}
 	s.params = &params
 	s.servicenodes = make(map[string]*sn.ServiceNode)
@@ -230,6 +240,28 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 		return nil, err
 	}
 	s.connManager = cmgr
+	if bannedFile == "" {
+		bannedFile = defaultBannedFile
+	}
+	var f *os.File
+	if _, err := os.Stat(bannedFile); errors.Is(err, os.ErrNotExist) {
+		f, err = os.Create(bannedFile)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		f, err = os.Open(bannedFile)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	store, err := gkvlite.NewStore(f)
+	if err != nil {
+		return nil, err
+	}
+	s.banSnodesStore = store
+	s.banSnodes = store.SetCollection("snodes", nil)
 
 	return &s, nil
 }
@@ -472,6 +504,7 @@ func (s *Client) GetTransactions(service string, txids []interface{}, query int)
 		return MostCommonReply(replies)
 	}
 }
+
 // DecodeTransactionRaw fetches the transaction data by hash or transaction id. Returns all replies.
 func (s *Client) DecodeTransactionRaw(service string, txhex interface{}, query int) (string, []SnodeReply, error) {
 	var params []interface{}
@@ -634,7 +667,7 @@ func callFetchWrapper(s *Client, service string, xrfunc string, params []interfa
 	} else { // xrs namespace
 		endpoint = fmt.Sprintf("/%s/%s", ns, removeNamespace(nsservice))
 	}
-	replies, err := fetchDataFromSnodes(&snodes, endpoint, params, query)
+	replies, err := fetchDataFromSnodes(s, &snodes, endpoint, params, query)
 	if len(replies) <= 0 {
 		return uid, []SnodeReply{}, errors.New("no replies found")
 	}
@@ -643,10 +676,11 @@ func callFetchWrapper(s *Client, service string, xrfunc string, params []interfa
 
 // fetchDataFromSnodes queries N number of service nodes and returns the results.
 type FetchDataError struct {
-	Error  string `json:"error"`
-	Code   int    `json:"code"`
+	Error string `json:"error"`
+	Code  int    `json:"code"`
 }
-func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
+
+func fetchDataFromSnodes(s *Client, snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
 	// TODO Blocknet penalize bad snodes
 	var replies []SnodeReply
 	var wg sync.WaitGroup
@@ -658,14 +692,20 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			continue
 		}
 
+		pkey := hex.EncodeToString(snode.Pubkey().SerializeCompressed())
+		banKey := fmt.Sprintf("%s_%s", path, pkey)
+		if item, _ := s.banSnodes.Get([]byte(banKey)); item != nil {
+			continue
+		}
 		queried++
 		wg.Add(1)
 
 		// Query from as many snodes as possible up to requested query count
-		go func(snode *sn.ServiceNode) {
+		go func(snode *sn.ServiceNode, s *Client) {
 			defer wg.Done()
 			var err error
 			strPubkey := hex.EncodeToString(snode.Pubkey().SerializeCompressed())
+			banKey := fmt.Sprintf("%s_%s", path, strPubkey)
 
 			// Prep parameters for post
 			var dataPost []byte
@@ -685,13 +725,17 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			if err != nil {
 				log.Printf("failed to connect to snode %v %v", strPubkey, err)
 				mu.Lock()
+				s.banSnodes.Set([]byte(banKey), []byte("banned"))
 				queried--
 				mu.Unlock()
 				return
 			}
 			if res.StatusCode != http.StatusOK {
 				log.Printf("bad response from snode: %v %v", strPubkey, res.Status)
+				s.banSnodes.Set([]byte(banKey), []byte("banned"))
 				_ = res.Body.Close()
+				// bad response should also return
+				return
 			}
 
 			// Read response data, hash it and record unique responses
@@ -732,7 +776,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			mu.Lock()
 			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
 			mu.Unlock()
-		}(snode)
+		}(snode, s)
 
 		// Wait for error, if error try another snode.
 		if queried >= query {
