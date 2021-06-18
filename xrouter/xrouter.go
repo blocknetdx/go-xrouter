@@ -351,7 +351,7 @@ func (s *Client) GetBlockCount(service string, query int) (SnodeReply, error) {
 	if _, replies, err := s.GetBlockCountRaw(service, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query)
+		return MostCommonReply(replies, query, service, "GetBlockCount")
 	}
 }
 
@@ -375,7 +375,7 @@ func (s *Client) GetBlockHash(service string, block interface{}, query int) (Sno
 	if _, replies, err := s.GetBlockHashRaw(service, block, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query)
+		return MostCommonReply(replies, query, service, "GetBlockHashRaw")
 	}
 }
 
@@ -398,7 +398,7 @@ func (s *Client) GetBlock(service string, block interface{}, query int) (SnodeRe
 	if _, replies, err := s.GetBlockRaw(service, block, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query)
+		return MostCommonReply(replies, query, service, "GetBlock")
 	}
 }
 
@@ -423,7 +423,7 @@ func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (Sno
 	if _, replies, err := s.GetBlocksRaw(service, blocks, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query)
+		return MostCommonReply(replies, query, service, "GetBlocks")
 	}
 }
 
@@ -446,7 +446,7 @@ func (s *Client) GetTransaction(service string, block interface{}, query int) (S
 	if _, replies, err := s.GetTransactionRaw(service, block, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query)
+		return MostCommonReply(replies, query, service, "GetTransaction")
 	}
 }
 
@@ -471,7 +471,7 @@ func (s *Client) GetTransactions(service string, txids []interface{}, query int)
 	if _, replies, err := s.GetTransactionsRaw(service, txids, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query)
+		return MostCommonReply(replies, query, service, "GetTransactions")
 	}
 }
 
@@ -494,7 +494,7 @@ func (s *Client) DecodeTransaction(service string, txhex interface{}, query int)
 	if _, replies, err := s.DecodeTransactionRaw(service, txhex, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query)
+		return MostCommonReply(replies, query, service, "DecodeTransaction")
 	}
 }
 
@@ -517,7 +517,7 @@ func (s *Client) SendTransaction(service string, txhex interface{}, query int) (
 	if _, replies, err := s.SendTransactionRaw(service, txhex, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query)
+		return MostCommonReply(replies, query, service, "SendTransaction")
 	}
 }
 
@@ -533,7 +533,7 @@ func (s *Client) CallService(service string, params []interface{}, query int) (S
 	if _, replies, err := s.CallServiceRaw(service, params, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query)
+		return MostCommonReply(replies, query, service, "CallService")
 	}
 }
 
@@ -568,20 +568,26 @@ func (s *Client) snodesForService(service, ns string) ([]*sn.ServiceNode, error)
 }
 
 // MostCommonReply returns the most common reply from the reply list
-func MostCommonReply(replies []SnodeReply, query int) (SnodeReply, error) {
+func MostCommonReply(replies []SnodeReply, query int, service, requestName string) (SnodeReply, error) {
+
 	snodeDataCounts := make(map[string]int)
 	for _, reply := range replies {
 		snodeDataCounts[string(reply.Hash)] += 1
 	}
 
 	snodeDataLen := len(snodeDataCounts)
+
+	message := fmt.Sprintf("Failed to find enough peers supporting %s for %s whose fees fall within the limits set in your config file. You requested responses from %d nodes, but only got %d. Please try to connect to more peers before retrying the request.", requestName, service, query, snodeDataLen)
+
 	if snodeDataLen == 0 { // no result
-		return SnodeReply{}, errors.New("no replies found")
+		var sr SnodeReply
+		sr.Flag = message
+		return sr, errors.New("no replies found")
 	}
 	if snodeDataLen == 1 { // single result
 		sr := replies[0]
 		if query > 1 {
-			sr.Flag = fmt.Sprintf("Insufficient replies. You specified %d nodes, but got %d replies. Suggest you increate the number of nodes.", query, snodeDataLen)
+			sr.Flag = message
 		}
 		return replies[0], nil
 	}
@@ -598,7 +604,7 @@ func MostCommonReply(replies []SnodeReply, query int) (SnodeReply, error) {
 	for _, reply := range replies {
 		if string(reply.Hash) == lastHashStr {
 			if query != snodeDataLen {
-				reply.Flag = fmt.Sprintf("Insufficient replies. You specified %d nodes, but got %d replies. Suggest you increate the number of nodes.", query, snodeDataLen)
+				reply.Flag = message
 			}
 			return reply, nil
 		}
