@@ -582,7 +582,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	if snodeDataLen == 0 { // no result
 		var sr SnodeReply
 		sr.Flag = message
-		return sr, errors.New("no replies found")
+		return sr, nil
 	}
 	if snodeDataLen == 1 { // single result
 		sr := replies[0]
