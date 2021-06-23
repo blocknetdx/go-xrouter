@@ -342,7 +342,7 @@ func (s *Client) HasSPVService(service string) bool {
 // GetBlockCountRaw SPV call fetches the block count (chain height) of the specified token.
 // Returns all replies.
 func (s *Client) GetBlockCountRaw(service string, query int) (string, []SnodeReply, error) {
-	return callFetchWrapper(s, "GetBlockCount", service, xrGetBlockCount, nil, query, xr)
+	return callFetchWrapper(s, service, xrGetBlockCount, nil, query, xr)
 }
 
 // GetBlockCount SPV call fetches the block count (chain height) of the specified token.
@@ -366,7 +366,7 @@ func (s *Client) GetBlockHashRaw(service string, block interface{}, query int) (
 	} else {
 		return "", nil, errors.New("unexpected type: only int and hex string supported")
 	}
-	return callFetchWrapper(s, "GetBlockHash", service, xrGetBlockHash, params, query, xr)
+	return callFetchWrapper(s, service, xrGetBlockHash, params, query, xr)
 }
 
 // GetBlockHash SPV call fetches the block hash with the specified block number.
@@ -389,7 +389,7 @@ func (s *Client) GetBlockRaw(service string, block interface{}, query int) (stri
 	} else {
 		return "", nil, errors.New("unexpected type: only int and hex string supported")
 	}
-	return callFetchWrapper(s, "GetBlock", service, xrGetBlock, params, query, xr)
+	return callFetchWrapper(s, service, xrGetBlock, params, query, xr)
 }
 
 // GetBlock fetches the block data by block hash or block height. Returns the most common
@@ -414,7 +414,7 @@ func (s *Client) GetBlocksRaw(service string, blocks []interface{}, query int) (
 			return "", nil, errors.New("unexpected type: only int and hex string supported")
 		}
 	}
-	return callFetchWrapper(s, "GetBlocks", service, xrGetBlocks, blocks, query, xr)
+	return callFetchWrapper(s, service, xrGetBlocks, blocks, query, xr)
 }
 
 // GetBlocks fetches the blocks by block hash or block height. Returns the most common
@@ -437,7 +437,7 @@ func (s *Client) GetTransactionRaw(service string, txid interface{}, query int) 
 	} else {
 		return "", nil, errors.New("unexpected type: only int and hex string supported")
 	}
-	return callFetchWrapper(s, "GetTransaction", service, xrGetTransaction, params, query, xr)
+	return callFetchWrapper(s, service, xrGetTransaction, params, query, xr)
 }
 
 // GetTransaction fetches the transaction by hash or transaction id. Returns the most common
@@ -462,7 +462,7 @@ func (s *Client) GetTransactionsRaw(service string, txids []interface{}, query i
 			return "", nil, errors.New("unexpected type: only int and hex string supported")
 		}
 	}
-	return callFetchWrapper(s, "GetTransactins", service, xrGetTransactions, txids, query, xr)
+	return callFetchWrapper(s, service, xrGetTransactions, txids, query, xr)
 }
 
 // GetTransactions fetches the transactions by hash or transaction id. Returns the most common
@@ -485,7 +485,7 @@ func (s *Client) DecodeTransactionRaw(service string, txhex interface{}, query i
 	} else {
 		return "", nil, errors.New("unexpected type: only byte array and hex string supported")
 	}
-	return callFetchWrapper(s, "DecodeTransaction", service, xrDecodeTransaction, params, query, xr)
+	return callFetchWrapper(s, service, xrDecodeTransaction, params, query, xr)
 }
 
 // DecodeTransaction fetches the transaction data by hash or transaction id. Returns the most common
@@ -508,7 +508,7 @@ func (s *Client) SendTransactionRaw(service string, txhex interface{}, query int
 	} else {
 		return "", nil, errors.New("unexpected type: only byte array and hex string supported")
 	}
-	return callFetchWrapper(s, "SendTransaction", service, xrSendTransaction, params, query, xr)
+	return callFetchWrapper(s, service, xrSendTransaction, params, query, xr)
 }
 
 // SendTransaction submits a transaction to the network of the specified token. Returns the most common
@@ -524,7 +524,7 @@ func (s *Client) SendTransaction(service string, txhex interface{}, query int) (
 // CallServiceRaw submits requests to [query] number of endpoints. All replies are
 // returned.
 func (s *Client) CallServiceRaw(service string, params []interface{}, query int) (string, []SnodeReply, error) {
-	return callFetchWrapper(s, "CallService", service, xrsService, params, query, xrs)
+	return callFetchWrapper(s, service, xrsService, params, query, xrs)
 }
 
 // CallService submits requests to [query] number of endpoints. The most common reply
@@ -633,7 +633,7 @@ func addNamespace(service, ns string) string {
 
 // callFetchWrapper Performs a lookup on the requested XRouter service and submits the request
 // to the desired number of snodes.
-func callFetchWrapper(s *Client, requestName, service string, xrfunc string, params []interface{}, query int, ns string) (string, []SnodeReply, error) {
+func callFetchWrapper(s *Client, service string, xrfunc string, params []interface{}, query int, ns string) (string, []SnodeReply, error) {
 	uid := uuid.New().String()
 	nsservice := addNamespace(service, ns)
 
@@ -651,7 +651,7 @@ func callFetchWrapper(s *Client, requestName, service string, xrfunc string, par
 		endpoint = fmt.Sprintf("/%s/%s", ns, removeNamespace(nsservice))
 	}
 	replies, err := fetchDataFromSnodes(&snodes, endpoint, params, query)
-	message := fmt.Sprintf("Failed to find enough peers supporting %s for %s whose fees fall within the limits set in your config file. You requested responses from %d nodes, but only got %d. Please try to connect to more peers before retrying the request.", requestName, service, query, len(replies))
+	message := fmt.Sprintf("Failed to find enough peers supporting %s for %s whose fees fall within the limits set in your config file. You requested responses from %d nodes, but only got %d. Please try to connect to more peers before retrying the request.", xrfunc, service, query, len(replies))
 	var sr SnodeReply
 	sr.Flag = message
 	if len(replies) <= 0 {
