@@ -351,7 +351,7 @@ func (s *Client) GetBlockCount(service string, query int) (SnodeReply, error) {
 	if _, replies, err := s.GetBlockCountRaw(service, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query, service, "GetBlockCount")
+		return MostCommonReply(replies, query, service, xrGetBlockCount)
 	}
 }
 
@@ -375,7 +375,7 @@ func (s *Client) GetBlockHash(service string, block interface{}, query int) (Sno
 	if _, replies, err := s.GetBlockHashRaw(service, block, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query, service, "GetBlockHashRaw")
+		return MostCommonReply(replies, query, service, xrGetBlockHash)
 	}
 }
 
@@ -398,7 +398,7 @@ func (s *Client) GetBlock(service string, block interface{}, query int) (SnodeRe
 	if _, replies, err := s.GetBlockRaw(service, block, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query, service, "GetBlock")
+		return MostCommonReply(replies, query, service, xrGetBlock)
 	}
 }
 
@@ -423,7 +423,7 @@ func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (Sno
 	if _, replies, err := s.GetBlocksRaw(service, blocks, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query, service, "GetBlocks")
+		return MostCommonReply(replies, query, service, xrGetBlocks)
 	}
 }
 
@@ -446,7 +446,7 @@ func (s *Client) GetTransaction(service string, block interface{}, query int) (S
 	if _, replies, err := s.GetTransactionRaw(service, block, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query, service, "GetTransaction")
+		return MostCommonReply(replies, query, service, xrGetTransaction)
 	}
 }
 
@@ -471,7 +471,7 @@ func (s *Client) GetTransactions(service string, txids []interface{}, query int)
 	if _, replies, err := s.GetTransactionsRaw(service, txids, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query, service, "GetTransactions")
+		return MostCommonReply(replies, query, service, xrGetTransactions)
 	}
 }
 
@@ -494,7 +494,7 @@ func (s *Client) DecodeTransaction(service string, txhex interface{}, query int)
 	if _, replies, err := s.DecodeTransactionRaw(service, txhex, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query, service, "DecodeTransaction")
+		return MostCommonReply(replies, query, service, xrDecodeTransaction)
 	}
 }
 
@@ -517,7 +517,7 @@ func (s *Client) SendTransaction(service string, txhex interface{}, query int) (
 	if _, replies, err := s.SendTransactionRaw(service, txhex, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query, service, "SendTransaction")
+		return MostCommonReply(replies, query, service, xrSendTransaction)
 	}
 }
 
@@ -533,7 +533,7 @@ func (s *Client) CallService(service string, params []interface{}, query int) (S
 	if _, replies, err := s.CallServiceRaw(service, params, query); err != nil {
 		return SnodeReply{}, err
 	} else {
-		return MostCommonReply(replies, query, service, "CallService")
+		return MostCommonReply(replies, query, service, xrsService)
 	}
 }
 
