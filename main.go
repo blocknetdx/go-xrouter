@@ -53,36 +53,37 @@ func main() {
 	//	log.Printf(service)
 	//}
 
-	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel2()
+	// ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
+	// defer cancel2()
 	queryCount := 1
-	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
-		log.Printf("error: %v", err)
-		return
-	}
+	// if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
+	// 	log.Printf("error: %v", err)
+	// 	return
+	// }
 
-	{
-		// Query the price oracle to obtain Bitcoin's price in USD
-		var params []interface{}
-		params = append(params, "BTC", "USD")
-		if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
-			log.Printf("error: %v", err)
-			return
-		} else {
-			log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
-		}
-	}
+	// {
+	// 	// Query the price oracle to obtain Bitcoin's price in USD
+	// 	var params []interface{}
+	// 	params = append(params, "BTC", "USD")
+	// 	if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
+	// 		log.Printf("error: %v", err)
+	// 		return
+	// 	} else {
+	// 		log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
+	// 	}
+	// }
 
 	{
 		// Query the BTC oracle to obtain the chain height
-		if reply, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
+		if reply, flag, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
-			if len(reply.Reply) == 0 {
-				log.Printf("Got an empty replie. %v", reply.Flag)
+			if reply == nil {
+				log.Printf("No replies found. %v\n", flag)
 			} else {
-				log.Printf("result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), reply.Flag)
+				log.Printf("Result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
+
 			}
 		}
 	}
