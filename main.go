@@ -80,7 +80,7 @@ func main() {
 			return
 		} else {
 			if len(reply.Reply) == 0 {
-				log.Printf("Got an empty replie from %v. %v", hex.EncodeToString(reply.Pubkey), reply.Flag)
+				log.Printf("Got an empty replie. %v", reply.Flag)
 			} else {
 				log.Printf("result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), reply.Flag)
 			}
