@@ -651,11 +651,8 @@ func callFetchWrapper(s *Client, service string, xrfunc string, params []interfa
 		endpoint = fmt.Sprintf("/%s/%s", ns, removeNamespace(nsservice))
 	}
 	replies, err := fetchDataFromSnodes(&snodes, endpoint, params, query)
-	message := fmt.Sprintf("Failed to find enough peers supporting %s for %s whose fees fall within the limits set in your config file. You requested responses from %d nodes, but only got %d. Please try to connect to more peers before retrying the request.", xrfunc, service, query, len(replies))
-	var sr SnodeReply
-	sr.Flag = message
 	if len(replies) <= 0 {
-		return uid, []SnodeReply{sr}, nil
+		return uid, []SnodeReply{}, nil
 	}
 	return uid, replies, nil
 }
