@@ -79,7 +79,11 @@ func main() {
 			log.Printf("error: %v", err)
 			return
 		} else {
-			log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
+			if len(reply.Reply) == 0 {
+				log.Printf("Got an empty replie from %v. %v", hex.EncodeToString(reply.Pubkey), reply.Flag)
+			} else {
+				log.Printf("result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), reply.Flag)
+			}
 		}
 	}
 }
