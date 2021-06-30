@@ -53,25 +53,30 @@ func main() {
 	//	log.Printf(service)
 	//}
 
-	// ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
-	// defer cancel2()
+	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel2()
 	queryCount := 1
-	// if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
-	// 	log.Printf("error: %v", err)
-	// 	return
-	// }
+	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
+		log.Printf("error: %v", err)
+		return
+	}
 
-	// {
-	// 	// Query the price oracle to obtain Bitcoin's price in USD
-	// 	var params []interface{}
-	// 	params = append(params, "BTC", "USD")
-	// 	if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
-	// 		log.Printf("error: %v", err)
-	// 		return
-	// 	} else {
-	// 		log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
-	// 	}
-	// }
+	{
+		// Query the price oracle to obtain Bitcoin's price in USD
+		var params []interface{}
+		params = append(params, "BTC", "USD")
+		if reply, flag, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
+			log.Printf("error: %v", err)
+			return
+		} else {
+			if reply == nil {
+				log.Printf("No replies found. %v\n", flag)
+			} else {
+				log.Printf("Result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
+
+			}
+		}
+	}
 
 	{
 		// Query the BTC oracle to obtain the chain height
