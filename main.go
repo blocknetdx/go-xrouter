@@ -8,11 +8,12 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/blocknetdx/go-xrouter/blockcfg"
-	"github.com/blocknetdx/go-xrouter/xrouter"
 	"log"
 	"os"
 	"time"
+
+	"github.com/blocknetdx/go-xrouter/blockcfg"
+	"github.com/blocknetdx/go-xrouter/xrouter"
 )
 
 func main() {
@@ -32,7 +33,7 @@ func main() {
 	// Start xrouter (this will begin querying the network)
 	client.Start()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	defer shutdown(client)
 
@@ -52,10 +53,10 @@ func main() {
 	//	log.Printf(service)
 	//}
 
-	ctx2, cancel2 := context.WithTimeout(ctx, 5 * time.Second)
+	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel2()
 	queryCount := 1
-	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice","xr::BTC"}, queryCount); err != nil {
+	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
 	}
@@ -64,21 +65,31 @@ func main() {
 		// Query the price oracle to obtain Bitcoin's price in USD
 		var params []interface{}
 		params = append(params, "BTC", "USD")
-		if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
+		if reply, flag, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
-			log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
+			if reply == nil {
+				log.Printf("No replies found. %v\n", flag)
+			} else {
+				log.Printf("Result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
+
+			}
 		}
 	}
 
 	{
 		// Query the BTC oracle to obtain the chain height
-		if reply, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
+		if reply, flag, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
-			log.Printf("result from %v: %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply))
+			if reply == nil {
+				log.Printf("No replies found. %v\n", flag)
+			} else {
+				log.Printf("Result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
+
+			}
 		}
 	}
 }

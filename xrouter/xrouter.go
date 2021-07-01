@@ -12,12 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/blocknetdx/go-xrouter/sn"
-	"github.com/btcsuite/btcd/addrmgr"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/connmgr"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/google/uuid"
 	"io/ioutil"
 	"log"
 	"net"
@@ -25,6 +19,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/blocknetdx/go-xrouter/sn"
+	"github.com/btcsuite/btcd/addrmgr"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/connmgr"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/google/uuid"
 )
 
 // These constants define the application version and follow the semantic
@@ -52,14 +53,14 @@ const (
 
 // XRouter SPV calls
 const (
-	xrGetBlockCount string     = "xrGetBlockCount"
-	xrGetBlockHash string      = "xrGetBlockHash"
-	xrGetBlock string          = "xrGetBlock"
-	xrGetBlocks string         = "xrGetBlocks"
-	xrGetTransaction string    = "xrGetTransaction"
-	xrGetTransactions string   = "xrGetTransactions"
+	xrGetBlockCount     string = "xrGetBlockCount"
+	xrGetBlockHash      string = "xrGetBlockHash"
+	xrGetBlock          string = "xrGetBlock"
+	xrGetBlocks         string = "xrGetBlocks"
+	xrGetTransaction    string = "xrGetTransaction"
+	xrGetTransactions   string = "xrGetTransactions"
 	xrDecodeTransaction string = "xrDecodeTransaction"
-	xrSendTransaction string   = "xrSendTransaction"
+	xrSendTransaction   string = "xrSendTransaction"
 )
 
 // XRouter Non-SPV calls
@@ -74,7 +75,7 @@ func xrNS(ns string) string {
 
 // isNS returns true if the service matches the namespace.
 func isNS(service, ns string) bool {
-	return strings.HasPrefix(service, ns + xrdelim)
+	return strings.HasPrefix(service, ns+xrdelim)
 }
 
 // normalizeVerString returns the passed string stripped of all characters which
@@ -111,20 +112,20 @@ func version() string {
 
 type SnodeReply struct {
 	Pubkey []byte
-	Hash []byte
-	Reply []byte
+	Hash   []byte
+	Reply  []byte
 }
 
 type Config struct {
-	MaxPeers int
-	SimNet bool
+	MaxPeers       int
+	SimNet         bool
 	DisableBanning bool
-	BanThreshold uint32
-	BanDuration time.Duration
-	DataDir string
-	AddPeers []string
-	ConnectPeers []string
-	whitelists []*net.IPNet
+	BanThreshold   uint32
+	BanDuration    time.Duration
+	DataDir        string
+	AddPeers       []string
+	ConnectPeers   []string
+	whitelists     []*net.IPNet
 }
 
 var cfg = Config{
@@ -158,7 +159,7 @@ type Client struct {
 	knownAddresses map[string]struct{}
 	started        int32
 	shutdown       int32
-	shutdownSched  int32 // list of blacklisted substrings by which to filter user agents
+	shutdownSched  int32    // list of blacklisted substrings by which to filter user agents
 	agentBlacklist []string // list of whitelisted user agent substrings, no whitelisting will be applied if the list is empty or nil
 	agentWhitelist []string
 	startupTime    int64
@@ -345,11 +346,11 @@ func (s *Client) GetBlockCountRaw(service string, query int) (string, []SnodeRep
 
 // GetBlockCount SPV call fetches the block count (chain height) of the specified token.
 // Returns the most common reply.
-func (s *Client) GetBlockCount(service string, query int) (SnodeReply, error) {
+func (s *Client) GetBlockCount(service string, query int) (*SnodeReply, string, error) {
 	if _, replies, err := s.GetBlockCountRaw(service, query); err != nil {
-		return SnodeReply{}, err
+		return nil, "", err
 	} else {
-		return MostCommonReply(replies)
+		return MostCommonReply(replies, query, service, xrGetBlockCount)
 	}
 }
 
@@ -369,11 +370,11 @@ func (s *Client) GetBlockHashRaw(service string, block interface{}, query int) (
 
 // GetBlockHash SPV call fetches the block hash with the specified block number.
 // Returns the most common reply.
-func (s *Client) GetBlockHash(service string, block interface{}, query int) (SnodeReply, error) {
+func (s *Client) GetBlockHash(service string, block interface{}, query int) (*SnodeReply, string, error) {
 	if _, replies, err := s.GetBlockHashRaw(service, block, query); err != nil {
-		return SnodeReply{}, err
+		return nil, "", err
 	} else {
-		return MostCommonReply(replies)
+		return MostCommonReply(replies, query, service, xrGetBlockHash)
 	}
 }
 
@@ -392,11 +393,11 @@ func (s *Client) GetBlockRaw(service string, block interface{}, query int) (stri
 
 // GetBlock fetches the block data by block hash or block height. Returns the most common
 // reply.
-func (s *Client) GetBlock(service string, block interface{}, query int) (SnodeReply, error) {
+func (s *Client) GetBlock(service string, block interface{}, query int) (*SnodeReply, string, error) {
 	if _, replies, err := s.GetBlockRaw(service, block, query); err != nil {
-		return SnodeReply{}, err
+		return nil, "", err
 	} else {
-		return MostCommonReply(replies)
+		return MostCommonReply(replies, query, service, xrGetBlock)
 	}
 }
 
@@ -417,11 +418,11 @@ func (s *Client) GetBlocksRaw(service string, blocks []interface{}, query int) (
 
 // GetBlocks fetches the blocks by block hash or block height. Returns the most common
 // reply.
-func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (SnodeReply, error) {
+func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (*SnodeReply, string, error) {
 	if _, replies, err := s.GetBlocksRaw(service, blocks, query); err != nil {
-		return SnodeReply{}, err
+		return nil, "", err
 	} else {
-		return MostCommonReply(replies)
+		return MostCommonReply(replies, query, service, xrGetBlocks)
 	}
 }
 
@@ -440,11 +441,11 @@ func (s *Client) GetTransactionRaw(service string, txid interface{}, query int) 
 
 // GetTransaction fetches the transaction by hash or transaction id. Returns the most common
 // reply.
-func (s *Client) GetTransaction(service string, block interface{}, query int) (SnodeReply, error) {
+func (s *Client) GetTransaction(service string, block interface{}, query int) (*SnodeReply, string, error) {
 	if _, replies, err := s.GetTransactionRaw(service, block, query); err != nil {
-		return SnodeReply{}, err
+		return nil, "", err
 	} else {
-		return MostCommonReply(replies)
+		return MostCommonReply(replies, query, service, xrGetTransaction)
 	}
 }
 
@@ -465,13 +466,14 @@ func (s *Client) GetTransactionsRaw(service string, txids []interface{}, query i
 
 // GetTransactions fetches the transactions by hash or transaction id. Returns the most common
 // reply.
-func (s *Client) GetTransactions(service string, txids []interface{}, query int) (SnodeReply, error) {
+func (s *Client) GetTransactions(service string, txids []interface{}, query int) (*SnodeReply, string, error) {
 	if _, replies, err := s.GetTransactionsRaw(service, txids, query); err != nil {
-		return SnodeReply{}, err
+		return nil, "", err
 	} else {
-		return MostCommonReply(replies)
+		return MostCommonReply(replies, query, service, xrGetTransactions)
 	}
 }
+
 // DecodeTransactionRaw fetches the transaction data by hash or transaction id. Returns all replies.
 func (s *Client) DecodeTransactionRaw(service string, txhex interface{}, query int) (string, []SnodeReply, error) {
 	var params []interface{}
@@ -487,11 +489,11 @@ func (s *Client) DecodeTransactionRaw(service string, txhex interface{}, query i
 
 // DecodeTransaction fetches the transaction data by hash or transaction id. Returns the most common
 // reply.
-func (s *Client) DecodeTransaction(service string, txhex interface{}, query int) (SnodeReply, error) {
+func (s *Client) DecodeTransaction(service string, txhex interface{}, query int) (*SnodeReply, string, error) {
 	if _, replies, err := s.DecodeTransactionRaw(service, txhex, query); err != nil {
-		return SnodeReply{}, err
+		return nil, "", err
 	} else {
-		return MostCommonReply(replies)
+		return MostCommonReply(replies, query, service, xrDecodeTransaction)
 	}
 }
 
@@ -510,11 +512,11 @@ func (s *Client) SendTransactionRaw(service string, txhex interface{}, query int
 
 // SendTransaction submits a transaction to the network of the specified token. Returns the most common
 // reply.
-func (s *Client) SendTransaction(service string, txhex interface{}, query int) (SnodeReply, error) {
+func (s *Client) SendTransaction(service string, txhex interface{}, query int) (*SnodeReply, string, error) {
 	if _, replies, err := s.SendTransactionRaw(service, txhex, query); err != nil {
-		return SnodeReply{}, err
+		return nil, "", err
 	} else {
-		return MostCommonReply(replies)
+		return MostCommonReply(replies, query, service, xrSendTransaction)
 	}
 }
 
@@ -526,11 +528,11 @@ func (s *Client) CallServiceRaw(service string, params []interface{}, query int)
 
 // CallService submits requests to [query] number of endpoints. The most common reply
 // is returned.
-func (s *Client) CallService(service string, params []interface{}, query int) (SnodeReply, error) {
+func (s *Client) CallService(service string, params []interface{}, query int) (*SnodeReply, string, error) {
 	if _, replies, err := s.CallServiceRaw(service, params, query); err != nil {
-		return SnodeReply{}, err
+		return nil, "", err
 	} else {
-		return MostCommonReply(replies)
+		return MostCommonReply(replies, query, service, xrsService)
 	}
 }
 
@@ -565,18 +567,26 @@ func (s *Client) snodesForService(service, ns string) ([]*sn.ServiceNode, error)
 }
 
 // MostCommonReply returns the most common reply from the reply list
-func MostCommonReply(replies []SnodeReply) (SnodeReply, error) {
+func MostCommonReply(replies []SnodeReply, query int, service, requestName string) (*SnodeReply, string, error) {
+
 	snodeDataCounts := make(map[string]int)
 	for _, reply := range replies {
 		snodeDataCounts[string(reply.Hash)] += 1
 	}
 
 	snodeDataLen := len(snodeDataCounts)
+
+	message := fmt.Sprintf("Failed to find enough peers supporting %s for %s whose fees fall within the limits set in your config file. You requested responses from %d nodes, but only got %d. Please try to connect to more peers before retrying the request.", requestName, service, query, snodeDataLen)
+
 	if snodeDataLen == 0 { // no result
-		return SnodeReply{}, errors.New("no replies found")
+		return nil, message, nil
 	}
 	if snodeDataLen == 1 { // single result
-		return replies[0], nil
+		mm := ""
+		if query > 1 {
+			mm = message
+		}
+		return &replies[0], mm, nil
 	}
 
 	// Return the most common result
@@ -590,11 +600,16 @@ func MostCommonReply(replies []SnodeReply) (SnodeReply, error) {
 	}
 	for _, reply := range replies {
 		if string(reply.Hash) == lastHashStr {
-			return reply, nil
+			mm := message
+			if query != snodeDataLen {
+				mm = message
+			}
+			return &reply, mm, nil
 		}
 	}
 
-	return SnodeReply{}, errors.New("no replies found (b)")
+	// TODO
+	return nil, message, errors.New("no replies found (b)")
 }
 
 // removeNamespace removes the XRouter namespace (e.g. removes xr:: xrs::)
@@ -636,16 +651,17 @@ func callFetchWrapper(s *Client, service string, xrfunc string, params []interfa
 	}
 	replies, err := fetchDataFromSnodes(&snodes, endpoint, params, query)
 	if len(replies) <= 0 {
-		return uid, []SnodeReply{}, errors.New("no replies found")
+		return uid, []SnodeReply{}, nil
 	}
 	return uid, replies, nil
 }
 
 // fetchDataFromSnodes queries N number of service nodes and returns the results.
 type FetchDataError struct {
-	Error  string `json:"error"`
-	Code   int    `json:"code"`
+	Error string `json:"error"`
+	Code  int    `json:"code"`
 }
+
 func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
 	// TODO Blocknet penalize bad snodes
 	var replies []SnodeReply
@@ -699,6 +715,14 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			_ = res.Body.Close()
 			if err != nil {
 				log.Printf("unable to read response from snode %v", strPubkey)
+				mu.Lock()
+				queried--
+				mu.Unlock()
+				return
+			}
+
+			if len(data) == 0 || data == nil {
+				// We got an empty reply
 				mu.Lock()
 				queried--
 				mu.Unlock()
