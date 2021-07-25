@@ -110,6 +110,10 @@ func version() string {
 	return version
 }
 
+type HelpReply struct {
+	Message string
+}
+
 type SnodeReply struct {
 	Pubkey []byte
 	Hash   []byte
@@ -533,6 +537,12 @@ func (s *Client) CallService(service string, params []interface{}, query int) (*
 		return nil, "", err
 	} else {
 		return MostCommonReply(replies, query, service, xrsService)
+	}
+}
+
+func (s *Client) Help() *HelpReply {
+	return &HelpReply{
+		Message: "For the list of all available API methods consider visiting https://api.blocknet.co/#xrouter-api",
 	}
 }
 
