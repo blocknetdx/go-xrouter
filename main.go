@@ -92,6 +92,11 @@ func main() {
 			}
 		}
 	}
+	{
+		reply := client.Help()
+		fmt.Println(reply.Message)
+	}
+
 }
 
 func shutdown(client *xrouter.Client) {
