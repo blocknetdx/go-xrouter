@@ -11,7 +11,7 @@ import (
 )
 
 type Item struct {
-	Object     []*SnodeReply
+	Object     []SnodeReply
 	Expiration int64
 }
 
@@ -36,11 +36,11 @@ type cache struct {
 	defaultExpiration time.Duration
 	items             map[string]Item
 	mu                sync.RWMutex
-	onEvicted         func(string, []*SnodeReply)
+	onEvicted         func(string, []SnodeReply)
 	janitor           *janitor
 }
 
-func (c *cache) Set(k string, x []*SnodeReply, d time.Duration) {
+func (c *cache) Set(k string, x []SnodeReply, d time.Duration) {
 	// "Inlining" of set
 	var e int64
 	if d == DefaultExpiration {
@@ -59,7 +59,7 @@ func (c *cache) Set(k string, x []*SnodeReply, d time.Duration) {
 	c.mu.Unlock()
 }
 
-func (c *cache) Get(k string) ([]*SnodeReply, bool) {
+func (c *cache) Get(k string) ([]SnodeReply, bool) {
 	c.mu.RLock()
 	// "Inlining" of get and Expired
 	item, found := c.items[k]
@@ -77,9 +77,20 @@ func (c *cache) Get(k string) ([]*SnodeReply, bool) {
 	return item.Object, true
 }
 
+func (c *cache) delete(k string) ([]SnodeReply, bool) {
+	if c.onEvicted != nil {
+		if v, found := c.items[k]; found {
+			delete(c.items, k)
+			return v.Object, true
+		}
+	}
+	delete(c.items, k)
+	return nil, false
+}
+
 type keyAndValue struct {
 	key   string
-	value []*SnodeReply
+	value []SnodeReply
 }
 
 func (c *cache) DeleteExpired() {
@@ -101,7 +112,7 @@ func (c *cache) DeleteExpired() {
 	}
 }
 
-func (c *cache) OnEvicted(f func(string, []*SnodeReply)) {
+func (c *cache) OnEvicted(f func(string, []SnodeReply)) {
 	c.mu.Lock()
 	c.onEvicted = f
 	c.mu.Unlock()
@@ -154,6 +165,9 @@ func (c *cache) Load(r io.Reader) error {
 }
 
 func (c *cache) LoadFile(fname string) error {
+	if _, err := os.Stat(fname); os.IsNotExist(err) {
+		return nil
+	}
 	fp, err := os.Open(fname)
 	if err != nil {
 		return err

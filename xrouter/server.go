@@ -914,6 +914,11 @@ func (s *Client) Stop() error {
 
 	// Signal the remaining goroutines to quit.
 	close(s.quit)
+
+	// save cache results
+	if err := s.cache.SaveFile(defaultCacheFilename); err != nil {
+		return err
+	}
 	return nil
 }
 
