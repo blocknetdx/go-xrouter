@@ -56,6 +56,8 @@ func main() {
 	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel2()
 	queryCount := 1
+
+	var testUID string
 	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
@@ -69,6 +71,7 @@ func main() {
 			log.Printf("error: %v", err)
 			return
 		} else {
+			testUID = uid
 			if reply == nil {
 				log.Printf("No replies found. %v\n", flag)
 			} else {
@@ -78,6 +81,17 @@ func main() {
 		}
 	}
 
+	{
+		if replies, err := client.GetReply(testUID); err != nil {
+			log.Printf("error: %v", err)
+			return
+		} else {
+			log.Printf("replies: %v", replies)
+			for _, replie := range replies {
+				log.Printf("replie: %+v\n", replie)
+			}
+		}
+	}
 	{
 		// Query the BTC oracle to obtain the chain height
 		if uid, reply, flag, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {

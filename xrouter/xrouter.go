@@ -575,6 +575,13 @@ func (s *Client) CallService(service string, params []interface{}, query int) (s
 		return uid, reply, flag, err
 	}
 }
+func (s *Client) GetReply(uid string) ([]SnodeReply, error) {
+	replies, found := s.cache.Get(uid)
+	if !found {
+		return nil, fmt.Errorf("no data found for the requested UUID: %v", uid)
+	}
+	return replies, nil
+}
 
 // addKnownAddresses adds the given addresses to the set of known addresses to
 // the peer to prevent sending duplicate addresses.
