@@ -68,6 +68,12 @@ const (
 	xrsService string = "xrService"
 )
 
+// Cache constants
+const (
+	defaultCacheFilename string        = "responses.txt"
+	defaultExpiration    time.Duration = 20 * time.Minute
+)
+
 // xrNS return the XRouter namespace with delimiter.
 func xrNS(ns string) string {
 	return ns + xrdelim
@@ -165,6 +171,8 @@ type Client struct {
 	startupTime    int64
 	bytesReceived  uint64 // Total bytes received from all peers since start
 	bytesSent      uint64 // Total bytes sent by all peers since start
+
+	cache *Cache
 }
 
 // NewClient creates and returns a new XRouter client.
@@ -232,6 +240,11 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 	}
 	s.connManager = cmgr
 
+	cache := New(20*time.Minute, 5*time.Minute)
+	if err := cache.LoadFile(defaultCacheFilename); err != nil {
+		return nil, err
+	}
+	s.cache = cache
 	return &s, nil
 }
 
@@ -346,11 +359,14 @@ func (s *Client) GetBlockCountRaw(service string, query int) (string, []SnodeRep
 
 // GetBlockCount SPV call fetches the block count (chain height) of the specified token.
 // Returns the most common reply.
-func (s *Client) GetBlockCount(service string, query int) (*SnodeReply, string, error) {
-	if _, replies, err := s.GetBlockCountRaw(service, query); err != nil {
-		return nil, "", err
+func (s *Client) GetBlockCount(service string, query int) (string, *SnodeReply, string, error) {
+	if uid, replies, err := s.GetBlockCountRaw(service, query); err != nil {
+		return uid, nil, "", err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetBlockCount)
+		// add to cache if successfull
+		s.cache.Set(uid, replies, defaultExpiration)
+		reply, flag, err := MostCommonReply(replies, query, service, xrGetBlockCount)
+		return uid, reply, flag, err
 	}
 }
 
@@ -370,11 +386,14 @@ func (s *Client) GetBlockHashRaw(service string, block interface{}, query int) (
 
 // GetBlockHash SPV call fetches the block hash with the specified block number.
 // Returns the most common reply.
-func (s *Client) GetBlockHash(service string, block interface{}, query int) (*SnodeReply, string, error) {
-	if _, replies, err := s.GetBlockHashRaw(service, block, query); err != nil {
-		return nil, "", err
+func (s *Client) GetBlockHash(service string, block interface{}, query int) (string, *SnodeReply, string, error) {
+	if uid, replies, err := s.GetBlockHashRaw(service, block, query); err != nil {
+		return uid, nil, "", err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetBlockHash)
+		// add to cache if successfull
+		s.cache.Set(uid, replies, defaultExpiration)
+		reply, flag, err := MostCommonReply(replies, query, service, xrGetBlockCount)
+		return uid, reply, flag, err
 	}
 }
 
@@ -393,11 +412,14 @@ func (s *Client) GetBlockRaw(service string, block interface{}, query int) (stri
 
 // GetBlock fetches the block data by block hash or block height. Returns the most common
 // reply.
-func (s *Client) GetBlock(service string, block interface{}, query int) (*SnodeReply, string, error) {
-	if _, replies, err := s.GetBlockRaw(service, block, query); err != nil {
-		return nil, "", err
+func (s *Client) GetBlock(service string, block interface{}, query int) (string, *SnodeReply, string, error) {
+	if uid, replies, err := s.GetBlockRaw(service, block, query); err != nil {
+		return uid, nil, "", err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetBlock)
+		// add to cache if successfull
+		s.cache.Set(uid, replies, defaultExpiration)
+		reply, flag, err := MostCommonReply(replies, query, service, xrGetBlockCount)
+		return uid, reply, flag, err
 	}
 }
 
@@ -418,11 +440,14 @@ func (s *Client) GetBlocksRaw(service string, blocks []interface{}, query int) (
 
 // GetBlocks fetches the blocks by block hash or block height. Returns the most common
 // reply.
-func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (*SnodeReply, string, error) {
-	if _, replies, err := s.GetBlocksRaw(service, blocks, query); err != nil {
-		return nil, "", err
+func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (string, *SnodeReply, string, error) {
+	if uid, replies, err := s.GetBlocksRaw(service, blocks, query); err != nil {
+		return uid, nil, "", err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetBlocks)
+		// add to cache if successfull
+		s.cache.Set(uid, replies, defaultExpiration)
+		reply, flag, err := MostCommonReply(replies, query, service, xrGetBlockCount)
+		return uid, reply, flag, err
 	}
 }
 
@@ -441,11 +466,14 @@ func (s *Client) GetTransactionRaw(service string, txid interface{}, query int) 
 
 // GetTransaction fetches the transaction by hash or transaction id. Returns the most common
 // reply.
-func (s *Client) GetTransaction(service string, block interface{}, query int) (*SnodeReply, string, error) {
-	if _, replies, err := s.GetTransactionRaw(service, block, query); err != nil {
-		return nil, "", err
+func (s *Client) GetTransaction(service string, block interface{}, query int) (string, *SnodeReply, string, error) {
+	if uid, replies, err := s.GetTransactionRaw(service, block, query); err != nil {
+		return uid, nil, "", err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetTransaction)
+		// add to cache if successfull
+		s.cache.Set(uid, replies, defaultExpiration)
+		reply, flag, err := MostCommonReply(replies, query, service, xrGetBlockCount)
+		return uid, reply, flag, err
 	}
 }
 
@@ -466,11 +494,14 @@ func (s *Client) GetTransactionsRaw(service string, txids []interface{}, query i
 
 // GetTransactions fetches the transactions by hash or transaction id. Returns the most common
 // reply.
-func (s *Client) GetTransactions(service string, txids []interface{}, query int) (*SnodeReply, string, error) {
-	if _, replies, err := s.GetTransactionsRaw(service, txids, query); err != nil {
-		return nil, "", err
+func (s *Client) GetTransactions(service string, txids []interface{}, query int) (string, *SnodeReply, string, error) {
+	if uid, replies, err := s.GetTransactionsRaw(service, txids, query); err != nil {
+		return uid, nil, "", err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetTransactions)
+		// add to cache if successfull
+		s.cache.Set(uid, replies, defaultExpiration)
+		reply, flag, err := MostCommonReply(replies, query, service, xrGetBlockCount)
+		return uid, reply, flag, err
 	}
 }
 
@@ -489,11 +520,14 @@ func (s *Client) DecodeTransactionRaw(service string, txhex interface{}, query i
 
 // DecodeTransaction fetches the transaction data by hash or transaction id. Returns the most common
 // reply.
-func (s *Client) DecodeTransaction(service string, txhex interface{}, query int) (*SnodeReply, string, error) {
-	if _, replies, err := s.DecodeTransactionRaw(service, txhex, query); err != nil {
-		return nil, "", err
+func (s *Client) DecodeTransaction(service string, txhex interface{}, query int) (string, *SnodeReply, string, error) {
+	if uid, replies, err := s.DecodeTransactionRaw(service, txhex, query); err != nil {
+		return uid, nil, "", err
 	} else {
-		return MostCommonReply(replies, query, service, xrDecodeTransaction)
+		// add to cache if successfull
+		s.cache.Set(uid, replies, defaultExpiration)
+		reply, flag, err := MostCommonReply(replies, query, service, xrGetBlockCount)
+		return uid, reply, flag, err
 	}
 }
 
@@ -512,11 +546,14 @@ func (s *Client) SendTransactionRaw(service string, txhex interface{}, query int
 
 // SendTransaction submits a transaction to the network of the specified token. Returns the most common
 // reply.
-func (s *Client) SendTransaction(service string, txhex interface{}, query int) (*SnodeReply, string, error) {
-	if _, replies, err := s.SendTransactionRaw(service, txhex, query); err != nil {
-		return nil, "", err
+func (s *Client) SendTransaction(service string, txhex interface{}, query int) (string, *SnodeReply, string, error) {
+	if uid, replies, err := s.SendTransactionRaw(service, txhex, query); err != nil {
+		return uid, nil, "", err
 	} else {
-		return MostCommonReply(replies, query, service, xrSendTransaction)
+		// add to cache if successfull
+		s.cache.Set(uid, replies, defaultExpiration)
+		reply, flag, err := MostCommonReply(replies, query, service, xrGetBlockCount)
+		return uid, reply, flag, err
 	}
 }
 
@@ -528,12 +565,22 @@ func (s *Client) CallServiceRaw(service string, params []interface{}, query int)
 
 // CallService submits requests to [query] number of endpoints. The most common reply
 // is returned.
-func (s *Client) CallService(service string, params []interface{}, query int) (*SnodeReply, string, error) {
-	if _, replies, err := s.CallServiceRaw(service, params, query); err != nil {
-		return nil, "", err
+func (s *Client) CallService(service string, params []interface{}, query int) (string, *SnodeReply, string, error) {
+	if uid, replies, err := s.CallServiceRaw(service, params, query); err != nil {
+		return uid, nil, "", err
 	} else {
-		return MostCommonReply(replies, query, service, xrsService)
+		// add to cache if successfull
+		s.cache.Set(uid, replies, defaultExpiration)
+		reply, flag, err := MostCommonReply(replies, query, service, xrGetBlockCount)
+		return uid, reply, flag, err
 	}
+}
+func (s *Client) GetReply(uid string) ([]SnodeReply, error) {
+	replies, found := s.cache.Get(uid)
+	if !found {
+		return nil, fmt.Errorf("no data found for the requested UUID: %v", uid)
+	}
+	return replies, nil
 }
 
 // addKnownAddresses adds the given addresses to the set of known addresses to

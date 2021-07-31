@@ -56,6 +56,8 @@ func main() {
 	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel2()
 	queryCount := 1
+
+	var testUID string
 	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
@@ -65,29 +67,41 @@ func main() {
 		// Query the price oracle to obtain Bitcoin's price in USD
 		var params []interface{}
 		params = append(params, "BTC", "USD")
-		if reply, flag, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
+		if uid, reply, flag, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
+			testUID = uid
 			if reply == nil {
 				log.Printf("No replies found. %v\n", flag)
 			} else {
-				log.Printf("Result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
+				log.Printf("UUID: %v. Result from %v: %v. %v", uid, hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
 
 			}
 		}
 	}
 
 	{
+		if replies, err := client.GetReply(testUID); err != nil {
+			log.Printf("error: %v", err)
+			return
+		} else {
+			log.Printf("replies: %v", replies)
+			for _, replie := range replies {
+				log.Printf("replie: %+v\n", replie)
+			}
+		}
+	}
+	{
 		// Query the BTC oracle to obtain the chain height
-		if reply, flag, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
+		if uid, reply, flag, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
 			if reply == nil {
 				log.Printf("No replies found. %v\n", flag)
 			} else {
-				log.Printf("Result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
+				log.Printf("UUID: %v. Result from %v: %v. %v.", uid, hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
 
 			}
 		}
