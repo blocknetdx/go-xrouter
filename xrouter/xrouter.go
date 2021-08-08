@@ -116,6 +116,13 @@ type SnodeReply struct {
 	Reply  []byte
 }
 
+type MCR struct {
+	MostCommonReply  *SnodeReply
+	Message          string
+	MajorityStrength float32
+	DivergentViews   int
+}
+
 type Config struct {
 	MaxPeers       int
 	SimNet         bool
@@ -346,9 +353,9 @@ func (s *Client) GetBlockCountRaw(service string, query int) (string, []SnodeRep
 
 // GetBlockCount SPV call fetches the block count (chain height) of the specified token.
 // Returns the most common reply.
-func (s *Client) GetBlockCount(service string, query int) (*SnodeReply, string, error) {
+func (s *Client) GetBlockCount(service string, query int) (*MCR, error) {
 	if _, replies, err := s.GetBlockCountRaw(service, query); err != nil {
-		return nil, "", err
+		return nil, err
 	} else {
 		return MostCommonReply(replies, query, service, xrGetBlockCount)
 	}
@@ -370,9 +377,9 @@ func (s *Client) GetBlockHashRaw(service string, block interface{}, query int) (
 
 // GetBlockHash SPV call fetches the block hash with the specified block number.
 // Returns the most common reply.
-func (s *Client) GetBlockHash(service string, block interface{}, query int) (*SnodeReply, string, error) {
+func (s *Client) GetBlockHash(service string, block interface{}, query int) (*MCR, error) {
 	if _, replies, err := s.GetBlockHashRaw(service, block, query); err != nil {
-		return nil, "", err
+		return nil, err
 	} else {
 		return MostCommonReply(replies, query, service, xrGetBlockHash)
 	}
@@ -393,9 +400,9 @@ func (s *Client) GetBlockRaw(service string, block interface{}, query int) (stri
 
 // GetBlock fetches the block data by block hash or block height. Returns the most common
 // reply.
-func (s *Client) GetBlock(service string, block interface{}, query int) (*SnodeReply, string, error) {
+func (s *Client) GetBlock(service string, block interface{}, query int) (*MCR, error) {
 	if _, replies, err := s.GetBlockRaw(service, block, query); err != nil {
-		return nil, "", err
+		return nil, err
 	} else {
 		return MostCommonReply(replies, query, service, xrGetBlock)
 	}
@@ -418,9 +425,9 @@ func (s *Client) GetBlocksRaw(service string, blocks []interface{}, query int) (
 
 // GetBlocks fetches the blocks by block hash or block height. Returns the most common
 // reply.
-func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (*SnodeReply, string, error) {
+func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (*MCR, error) {
 	if _, replies, err := s.GetBlocksRaw(service, blocks, query); err != nil {
-		return nil, "", err
+		return nil, err
 	} else {
 		return MostCommonReply(replies, query, service, xrGetBlocks)
 	}
@@ -441,9 +448,9 @@ func (s *Client) GetTransactionRaw(service string, txid interface{}, query int) 
 
 // GetTransaction fetches the transaction by hash or transaction id. Returns the most common
 // reply.
-func (s *Client) GetTransaction(service string, block interface{}, query int) (*SnodeReply, string, error) {
+func (s *Client) GetTransaction(service string, block interface{}, query int) (*MCR, error) {
 	if _, replies, err := s.GetTransactionRaw(service, block, query); err != nil {
-		return nil, "", err
+		return nil, err
 	} else {
 		return MostCommonReply(replies, query, service, xrGetTransaction)
 	}
@@ -466,9 +473,9 @@ func (s *Client) GetTransactionsRaw(service string, txids []interface{}, query i
 
 // GetTransactions fetches the transactions by hash or transaction id. Returns the most common
 // reply.
-func (s *Client) GetTransactions(service string, txids []interface{}, query int) (*SnodeReply, string, error) {
+func (s *Client) GetTransactions(service string, txids []interface{}, query int) (*MCR, error) {
 	if _, replies, err := s.GetTransactionsRaw(service, txids, query); err != nil {
-		return nil, "", err
+		return nil, err
 	} else {
 		return MostCommonReply(replies, query, service, xrGetTransactions)
 	}
@@ -489,9 +496,9 @@ func (s *Client) DecodeTransactionRaw(service string, txhex interface{}, query i
 
 // DecodeTransaction fetches the transaction data by hash or transaction id. Returns the most common
 // reply.
-func (s *Client) DecodeTransaction(service string, txhex interface{}, query int) (*SnodeReply, string, error) {
+func (s *Client) DecodeTransaction(service string, txhex interface{}, query int) (*MCR, error) {
 	if _, replies, err := s.DecodeTransactionRaw(service, txhex, query); err != nil {
-		return nil, "", err
+		return nil, err
 	} else {
 		return MostCommonReply(replies, query, service, xrDecodeTransaction)
 	}
@@ -512,9 +519,9 @@ func (s *Client) SendTransactionRaw(service string, txhex interface{}, query int
 
 // SendTransaction submits a transaction to the network of the specified token. Returns the most common
 // reply.
-func (s *Client) SendTransaction(service string, txhex interface{}, query int) (*SnodeReply, string, error) {
+func (s *Client) SendTransaction(service string, txhex interface{}, query int) (*MCR, error) {
 	if _, replies, err := s.SendTransactionRaw(service, txhex, query); err != nil {
-		return nil, "", err
+		return nil, err
 	} else {
 		return MostCommonReply(replies, query, service, xrSendTransaction)
 	}
@@ -528,9 +535,9 @@ func (s *Client) CallServiceRaw(service string, params []interface{}, query int)
 
 // CallService submits requests to [query] number of endpoints. The most common reply
 // is returned.
-func (s *Client) CallService(service string, params []interface{}, query int) (*SnodeReply, string, error) {
+func (s *Client) CallService(service string, params []interface{}, query int) (*MCR, error) {
 	if _, replies, err := s.CallServiceRaw(service, params, query); err != nil {
-		return nil, "", err
+		return nil, err
 	} else {
 		return MostCommonReply(replies, query, service, xrsService)
 	}
@@ -567,7 +574,9 @@ func (s *Client) snodesForService(service, ns string) ([]*sn.ServiceNode, error)
 }
 
 // MostCommonReply returns the most common reply from the reply list
-func MostCommonReply(replies []SnodeReply, query int, service, requestName string) (*SnodeReply, string, error) {
+func MostCommonReply(replies []SnodeReply, query int, service, requestName string) (*MCR, error) {
+
+	mcr := &MCR{}
 
 	snodeDataCounts := make(map[string]int)
 	for _, reply := range replies {
@@ -579,37 +588,63 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	message := fmt.Sprintf("Failed to find enough peers supporting %s for %s whose fees fall within the limits set in your config file. You requested responses from %d nodes, but only got %d. Please try to connect to more peers before retrying the request.", requestName, service, query, snodeDataLen)
 
 	if snodeDataLen == 0 { // no result
-		return nil, message, nil
+		mcr.Message = message
+		return mcr, nil
 	}
 	if snodeDataLen == 1 { // single result
-		mm := ""
 		if query > 1 {
-			mm = message
+			mcr.Message = message
 		}
-		return &replies[0], mm, nil
+		mcr.MostCommonReply = &replies[0]
+		mcr.MajorityStrength = float32(100.0)
+		mcr.DivergentViews = 1
+		return mcr, nil
 	}
 
 	// Return the most common result
 	lastCount := 0
 	lastHashStr := ""
+	divViews := 0
+	majorityCount := 0
+
 	for k, v := range snodeDataCounts {
 		if v > lastCount {
 			lastCount = v
 			lastHashStr = k
 		}
 	}
+	var _reply *SnodeReply
 	for _, reply := range replies {
 		if string(reply.Hash) == lastHashStr {
-			mm := message
 			if query != snodeDataLen {
-				mm = message
+				mcr.Message = message
 			}
-			return &reply, mm, nil
+			_reply = &reply
+			mcr.MostCommonReply = &reply
 		}
 	}
 
+	if _reply != nil {
+		uniqMap := make(map[string]struct{}, 0)
+		for _, reply := range replies {
+			res := bytes.Compare(reply.Reply, _reply.Reply)
+			if res == 0 {
+				majorityCount++
+			} else {
+				if _, ok := uniqMap[string(reply.Reply)]; !ok {
+					divViews++
+					uniqMap[string(reply.Reply)] = struct{}{}
+				}
+			}
+		}
+		mcr.DivergentViews = divViews
+		mcr.MajorityStrength = float32(majorityCount) / float32(snodeDataLen)
+		return mcr, nil
+	}
+
 	// TODO
-	return nil, message, errors.New("no replies found (b)")
+	mcr.Message = message
+	return mcr, errors.New("no replies found (b)")
 }
 
 // removeNamespace removes the XRouter namespace (e.g. removes xr:: xrs::)
@@ -670,9 +705,9 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 	queried := 0
 	validResults := 0
 	for _, snode := range *snodes {
-		if !snode.EXRCompatible() {
-			continue
-		}
+		// if !snode.EXRCompatible() {
+		// 	continue
+		// }
 
 		queried++
 		wg.Add(1)
@@ -696,8 +731,11 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			}
 			bufPost := bytes.NewBuffer(dataPost)
 
+			fmt.Println(path)
+			fmt.Println(snode.Endpoint())
+			endpoint := fmt.Sprintf("http://75.119.155.29%s", path)
 			// Post parameters along with the request
-			res, err := http.Post(snode.EndpointPath(path), "application/json", bufPost)
+			res, err := http.Post(endpoint, "application/json", bufPost)
 			if err != nil {
 				log.Printf("failed to connect to snode %v %v", strPubkey, err)
 				mu.Lock()

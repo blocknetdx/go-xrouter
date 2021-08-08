@@ -65,30 +65,28 @@ func main() {
 		// Query the price oracle to obtain Bitcoin's price in USD
 		var params []interface{}
 		params = append(params, "BTC", "USD")
-		if reply, flag, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
+		if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
-			if reply == nil {
-				log.Printf("No replies found. %v\n", flag)
+			if reply.MostCommonReply == nil {
+				log.Printf("No replies found. %v\n", reply.Message)
 			} else {
-				log.Printf("Result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
-
+				log.Printf("Result from %v: %v with majority strength %.2f%% and %d divirgent views. %v", hex.EncodeToString(reply.MostCommonReply.Pubkey), string(reply.MostCommonReply.Reply), reply.MajorityStrength, reply.DivergentViews, reply.Message)
 			}
 		}
 	}
 
 	{
 		// Query the BTC oracle to obtain the chain height
-		if reply, flag, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
+		if reply, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
-			if reply == nil {
-				log.Printf("No replies found. %v\n", flag)
+			if reply.MostCommonReply == nil {
+				log.Printf("No replies found. %v\n", reply.Message)
 			} else {
-				log.Printf("Result from %v: %v. %v", hex.EncodeToString(reply.Pubkey), string(reply.Reply), flag)
-
+				log.Printf("Result from %v: %v with majority strength %.2f%% and %d divirgent views. %v", hex.EncodeToString(reply.MostCommonReply.Pubkey), string(reply.MostCommonReply.Reply), reply.MajorityStrength, reply.DivergentViews, reply.Message)
 			}
 		}
 	}
