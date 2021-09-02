@@ -72,21 +72,53 @@ func main() {
 			if reply.MostCommonReply == nil {
 				log.Printf("No replies found. %v\n", reply.Message)
 			} else {
-				log.Printf("Result from %v: %v with majority strength %.2f%% and %d divirgent views. %v", hex.EncodeToString(reply.MostCommonReply.Pubkey), string(reply.MostCommonReply.Reply), reply.MajorityStrength, reply.DivergentViews, reply.Message)
+				log.Printf(
+					"Result from %v: %v with %v divergent replies.\n",
+					hex.EncodeToString(reply.MostCommonReply.Pubkey),
+					string(reply.MostCommonReply.Reply),
+					reply.MostCommonReplyCount,
+				)
+				if len(reply.Divergent) != 0 {
+					log.Println("Diveregent replies are provided below.")
+					for _, v := range reply.Divergent {
+						log.Printf(
+							"Divergent result from %v: %v with %v reply counts.",
+							hex.EncodeToString(v.Reply.Pubkey),
+							string(v.Reply.Reply),
+							v.ViewCount,
+						)
+					}
+				}
 			}
 		}
 	}
 
 	{
 		// Query the BTC oracle to obtain the chain height
-		if reply, err := client.GetBlockCount("xr::BTC", queryCount); err != nil {
+		if reply, err := client.GetBlockCount("xr::BLOCK", queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
 			if reply.MostCommonReply == nil {
 				log.Printf("No replies found. %v\n", reply.Message)
 			} else {
-				log.Printf("Result from %v: %v with majority strength %.2f%% and %d divirgent views. %v", hex.EncodeToString(reply.MostCommonReply.Pubkey), string(reply.MostCommonReply.Reply), reply.MajorityStrength, reply.DivergentViews, reply.Message)
+				log.Printf(
+					"Result from %v: %v with %v divergent replies.\n",
+					hex.EncodeToString(reply.MostCommonReply.Pubkey),
+					string(reply.MostCommonReply.Reply),
+					reply.MostCommonReplyCount,
+				)
+				if len(reply.Divergent) != 0 {
+					log.Println("Diveregent replies are provided below.")
+					for _, v := range reply.Divergent {
+						log.Printf(
+							"Divergent result from %v: %v with %v reply counts.",
+							hex.EncodeToString(v.Reply.Pubkey),
+							string(v.Reply.Reply),
+							v.ViewCount,
+						)
+					}
+				}
 			}
 		}
 	}

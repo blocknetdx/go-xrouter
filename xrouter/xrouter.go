@@ -117,10 +117,16 @@ type SnodeReply struct {
 }
 
 type MCR struct {
-	MostCommonReply  *SnodeReply
-	Message          string
-	MajorityStrength float32
-	DivergentViews   int
+	MostCommonReplyCount int
+	DivergentReplies     int
+	MostCommonReply      *SnodeReply
+	Divergent            []DivergentReply
+	Message              string
+}
+
+type DivergentReply struct {
+	ViewCount int
+	Reply     *SnodeReply
 }
 
 type Config struct {
@@ -591,59 +597,66 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		mcr.Message = message
 		return mcr, nil
 	}
+
 	if snodeDataLen == 1 { // single result
 		if query > 1 {
 			mcr.Message = message
 		}
+		mcr.MostCommonReplyCount = 1
 		mcr.MostCommonReply = &replies[0]
-		mcr.MajorityStrength = float32(100.0)
-		mcr.DivergentViews = 1
+		mcr.DivergentReplies = 1
 		return mcr, nil
 	}
 
-	// Return the most common result
-	lastCount := 0
-	lastHashStr := ""
-	divViews := 0
-	majorityCount := 0
-
-	for k, v := range snodeDataCounts {
-		if v > lastCount {
-			lastCount = v
-			lastHashStr = k
-		}
+	type responsePair struct {
+		count int
+		reply *SnodeReply
 	}
-	var _reply *SnodeReply
-	for _, reply := range replies {
-		if string(reply.Hash) == lastHashStr {
-			if query != snodeDataLen {
-				mcr.Message = message
+	uniqueCount := make(map[string]responsePair, 0)
+	for _, _reply := range replies {
+		_h := hashResponse(_reply.Reply)
+		if pair, ok := uniqueCount[_h]; ok {
+			// found existing hash!
+			_c := pair.count + 1
+			pair.count = _c
+			uniqueCount[_h] = pair
+		} else {
+			newPair := responsePair{
+				count: 1,
+				reply: &_reply,
 			}
-			_reply = &reply
-			mcr.MostCommonReply = &reply
+			uniqueCount[_h] = newPair
 		}
 	}
 
-	if _reply != nil {
-		uniqMap := make(map[string]struct{}, 0)
-		for _, reply := range replies {
-			res := bytes.Compare(reply.Reply, _reply.Reply)
-			if res == 0 {
-				majorityCount++
-			} else {
-				if _, ok := uniqMap[string(reply.Reply)]; !ok {
-					divViews++
-					uniqMap[string(reply.Reply)] = struct{}{}
-				}
-			}
+	// find most common (actually with the height count)
+	maxKey := ""
+	maxValue := 0
+	for k, v := range uniqueCount {
+		if v.count > maxValue {
+			maxValue = v.count
+			maxKey = k
 		}
-		mcr.DivergentViews = divViews
-		mcr.MajorityStrength = float32(majorityCount) / float32(snodeDataLen)
-		return mcr, nil
 	}
 
-	// TODO
+	mcr.DivergentReplies = len(replies)
+	mcr.MostCommonReplyCount = maxValue
+	mcr.MostCommonReply = uniqueCount[maxKey].reply
 	mcr.Message = message
+	mcr.Divergent = make([]DivergentReply, 0)
+	if len(replies) != maxValue {
+		// we found divergents
+		for k, v := range uniqueCount {
+			if k != maxKey {
+				// actual divirgent
+				mcr.Divergent = append(mcr.Divergent, DivergentReply{
+					ViewCount: v.count,
+					Reply:     v.reply,
+				})
+			}
+		}
+	}
+	// TODO
 	return mcr, errors.New("no replies found (b)")
 }
 
@@ -731,9 +744,10 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			}
 			bufPost := bytes.NewBuffer(dataPost)
 
-			fmt.Println(path)
-			fmt.Println(snode.Endpoint())
-			endpoint := fmt.Sprintf("http://75.119.155.29%s", path)
+			// fmt.Println(path)
+			// fmt.Println(snode.Endpoint())
+			endpoint := snode.Endpoint()
+			// endpoint := fmt.Sprintf("http://75.119.155.29%s", path)
 			// Post parameters along with the request
 			res, err := http.Post(endpoint, "application/json", bufPost)
 			if err != nil {
@@ -810,4 +824,10 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 		return replies, errors.New("no replies found")
 	}
 	return replies, nil
+}
+
+func hashResponse(response []byte) string {
+	h := sha1.New()
+	h.Write([]byte(response))
+	return hex.EncodeToString(h.Sum(nil))
 }
