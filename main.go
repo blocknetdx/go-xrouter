@@ -7,6 +7,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -72,6 +73,7 @@ func main() {
 			if reply.MostCommonReply == nil {
 				log.Printf("No replies found. %v\n", reply.Message)
 			} else {
+				log.Printf("%#v", reply)
 				log.Printf(
 					"Result from %v: %v with %v divergent replies.\n",
 					hex.EncodeToString(reply.MostCommonReply.Pubkey),
@@ -90,6 +92,10 @@ func main() {
 					}
 				}
 			}
+
+			log.Println("The full response is provided below.")
+			s, _ := json.MarshalIndent(reply, "", "\t")
+			log.Println(string(s))
 		}
 	}
 
@@ -102,6 +108,7 @@ func main() {
 			if reply.MostCommonReply == nil {
 				log.Printf("No replies found. %v\n", reply.Message)
 			} else {
+				log.Printf("%#v", reply)
 				log.Printf(
 					"Result from %v: %v with %v divergent replies.\n",
 					hex.EncodeToString(reply.MostCommonReply.Pubkey),
@@ -120,6 +127,9 @@ func main() {
 					}
 				}
 			}
+			log.Println("The full response is provided below.")
+			s, _ := json.MarshalIndent(reply, "", "\t")
+			log.Println(string(s))
 		}
 	}
 }
