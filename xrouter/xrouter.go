@@ -746,7 +746,8 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 
 			// fmt.Println(path)
 			// fmt.Println(snode.Endpoint())
-			endpoint := snode.Endpoint()
+			endpoint := snode.EndpointPath(path)
+			// snode.EndpointPath(path)
 			// endpoint := fmt.Sprintf("http://75.119.155.29%s", path)
 			// Post parameters along with the request
 			res, err := http.Post(endpoint, "application/json", bufPost)
