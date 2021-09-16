@@ -639,15 +639,26 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		}
 	}
 
+	// check if there two equal counts (:
+	equalExist := false
+	for k, v := range uniqueCount {
+		if v.count == maxValue && maxKey != k {
+			equalExist = true
+			break
+		}
+	}
+
 	mcr.DivergentReplies = len(replies)
-	mcr.MostCommonReplyCount = maxValue
-	mcr.MostCommonReply = uniqueCount[maxKey].reply
+	if !equalExist {
+		mcr.MostCommonReply = uniqueCount[maxKey].reply
+		mcr.MostCommonReplyCount = maxValue
+	}
 	mcr.Message = message
 	mcr.Divergent = make([]DivergentReply, 0)
 	if len(replies) != maxValue {
 		// we found divergents
 		for k, v := range uniqueCount {
-			if k != maxKey {
+			if k != maxKey || equalExist {
 				// actual divirgent
 				mcr.Divergent = append(mcr.Divergent, DivergentReply{
 					ViewCount: v.count,
@@ -718,9 +729,9 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 	queried := 0
 	validResults := 0
 	for _, snode := range *snodes {
-		// if !snode.EXRCompatible() {
-		// 	continue
-		// }
+		if !snode.EXRCompatible() {
+			continue
+		}
 
 		queried++
 		wg.Add(1)
@@ -747,6 +758,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			// fmt.Println(path)
 			// fmt.Println(snode.Endpoint())
 			endpoint := snode.EndpointPath(path)
+			fmt.Println(endpoint)
 			// snode.EndpointPath(path)
 			// endpoint := fmt.Sprintf("http://75.119.155.29%s", path)
 			// Post parameters along with the request
