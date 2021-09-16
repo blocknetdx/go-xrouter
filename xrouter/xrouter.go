@@ -728,7 +728,6 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 	var mu sync.Mutex
 	queried := 0
 	validResults := 0
-	fmt.Println("DLINA", len(*snodes))
 	for _, snode := range *snodes {
 		if !snode.EXRCompatible() {
 			continue
@@ -775,6 +774,11 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			if res.StatusCode != http.StatusOK {
 				log.Printf("bad response from snode: %v %v", strPubkey, res.Status)
 				_ = res.Body.Close()
+				// ignore bad response
+				mu.Lock()
+				queried--
+				mu.Unlock()
+				return
 			}
 
 			// Read response data, hash it and record unique responses
