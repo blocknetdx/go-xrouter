@@ -604,7 +604,6 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		}
 		mcr.MostCommonReplyCount = 1
 		mcr.MostCommonReply = &replies[0]
-		mcr.DivergentReplies = 1
 		return mcr, nil
 	}
 
@@ -648,7 +647,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		}
 	}
 
-	mcr.DivergentReplies = len(replies)
+	// mcr.DivergentReplies = len(replies)
 	if !equalExist {
 		mcr.MostCommonReply = uniqueCount[maxKey].reply
 		mcr.MostCommonReplyCount = maxValue
@@ -667,6 +666,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 			}
 		}
 	}
+	mcr.DivergentReplies = len(mcr.Divergent)
 	// TODO
 	return mcr, errors.New("no replies found (b)")
 }
@@ -739,6 +739,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 		// Query from as many snodes as possible up to requested query count
 		go func(snode *sn.ServiceNode) {
 			defer wg.Done()
+			// bad := false
 			var err error
 
 			strPubkey := hex.EncodeToString(snode.Pubkey().SerializeCompressed())
@@ -774,11 +775,12 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			if res.StatusCode != http.StatusOK {
 				log.Printf("bad response from snode: %v %v", strPubkey, res.Status)
 				_ = res.Body.Close()
+				// bad = true
 				// ignore bad response
-				mu.Lock()
-				queried--
-				mu.Unlock()
-				return
+				// mu.Lock()
+				// queried--
+				// mu.Unlock()
+				// return
 			}
 
 			// Read response data, hash it and record unique responses
@@ -823,6 +825,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 				mu.Unlock()
 			}
 
+			// fmt.Println(bad, "BAD RESPONSE, BUT MADE IT?")
 			// Store reply and exit if reply count is met
 			mu.Lock()
 			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
