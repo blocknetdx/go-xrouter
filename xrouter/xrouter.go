@@ -728,6 +728,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 	var mu sync.Mutex
 	queried := 0
 	validResults := 0
+	fmt.Println("DLINA", len(*snodes))
 	for _, snode := range *snodes {
 		if !snode.EXRCompatible() {
 			continue
@@ -740,6 +741,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 		go func(snode *sn.ServiceNode) {
 			defer wg.Done()
 			var err error
+
 			strPubkey := hex.EncodeToString(snode.Pubkey().SerializeCompressed())
 
 			// Prep parameters for post
