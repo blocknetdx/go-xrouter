@@ -119,14 +119,14 @@ type SnodeReply struct {
 type MCR struct {
 	MostCommonReplyCount int
 	DivergentReplies     int
-	MostCommonReply      *SnodeReply
+	MostCommonReply      SnodeReply
 	Divergent            []DivergentReply
 	Message              string
 }
 
 type DivergentReply struct {
 	ViewCount int
-	Reply     *SnodeReply
+	Reply     SnodeReply
 }
 
 type Config struct {
@@ -581,7 +581,7 @@ func (s *Client) snodesForService(service, ns string) ([]*sn.ServiceNode, error)
 
 // MostCommonReply returns the most common reply from the reply list
 func MostCommonReply(replies []SnodeReply, query int, service, requestName string) (*MCR, error) {
-
+	fmt.Println("============================")
 	mcr := &MCR{}
 
 	snodeDataCounts := make(map[string]int)
@@ -595,7 +595,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 
 	if snodeDataLen == 0 { // no result
 		mcr.Message = message
-		return mcr, nil
+		return mcr, errors.New("no replies found (b)")
 	}
 
 	if snodeDataLen == 1 { // single result
@@ -603,13 +603,13 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 			mcr.Message = message
 		}
 		mcr.MostCommonReplyCount = 1
-		mcr.MostCommonReply = &replies[0]
+		mcr.MostCommonReply = replies[0]
 		return mcr, nil
 	}
 
 	type responsePair struct {
 		count int
-		reply *SnodeReply
+		reply SnodeReply
 	}
 	uniqueCount := make(map[string]responsePair, 0)
 	for _, _reply := range replies {
@@ -622,7 +622,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		} else {
 			newPair := responsePair{
 				count: 1,
-				reply: &_reply,
+				reply: _reply,
 			}
 			uniqueCount[_h] = newPair
 		}
@@ -647,12 +647,10 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		}
 	}
 
-	// mcr.DivergentReplies = len(replies)
 	if !equalExist {
 		mcr.MostCommonReply = uniqueCount[maxKey].reply
 		mcr.MostCommonReplyCount = maxValue
 	}
-	mcr.Message = message
 	mcr.Divergent = make([]DivergentReply, 0)
 	if len(replies) != maxValue {
 		// we found divergents
@@ -667,8 +665,14 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		}
 	}
 	mcr.DivergentReplies = len(mcr.Divergent)
+	if len(replies) != query {
+		fmt.Println("IN MESSAGE SUDDNELY")
+		mcr.Message = message
+	}
+	fmt.Println("============================")
+
 	// TODO
-	return mcr, errors.New("no replies found (b)")
+	return mcr, nil
 }
 
 // removeNamespace removes the XRouter namespace (e.g. removes xr:: xrs::)
@@ -760,7 +764,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			// fmt.Println(path)
 			// fmt.Println(snode.Endpoint())
 			endpoint := snode.EndpointPath(path)
-			fmt.Println(endpoint)
+			// fmt.Println(endpoint)
 			// snode.EndpointPath(path)
 			// endpoint := fmt.Sprintf("http://75.119.155.29%s", path)
 			// Post parameters along with the request
