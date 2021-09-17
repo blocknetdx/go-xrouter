@@ -50,9 +50,9 @@ func main() {
 	log.Printf("XRouter is ready")
 
 	// List all network services
-	//for _, service := range client.ListNetworkServices() {
-	//	log.Printf(service)
-	//}
+	// for _, service := range client.ListNetworkServices() {
+	// 	log.Printf(service)
+	// }
 
 	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel2()
@@ -70,7 +70,7 @@ func main() {
 			log.Printf("error: %v", err)
 			return
 		} else {
-			if len(reply.Divergent) == 0 || reply.MostCommonReplyCount == 0 {
+			if len(reply.Divergent) == 0 && reply.MostCommonReplyCount == 0 {
 				log.Printf("No replies found. %v\n", reply.Message)
 			} else {
 				log.Printf("%#v", reply)
@@ -105,7 +105,7 @@ func main() {
 			log.Printf("error: %v", err)
 			return
 		} else {
-			if len(reply.Divergent) == 0 || reply.MostCommonReplyCount == 0 {
+			if len(reply.Divergent) == 0 && reply.MostCommonReplyCount == 0 {
 				log.Printf("No replies found. %v\n", reply.Message)
 			} else {
 				log.Printf("%#v", reply)

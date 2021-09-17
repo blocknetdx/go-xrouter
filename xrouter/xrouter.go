@@ -581,7 +581,6 @@ func (s *Client) snodesForService(service, ns string) ([]*sn.ServiceNode, error)
 
 // MostCommonReply returns the most common reply from the reply list
 func MostCommonReply(replies []SnodeReply, query int, service, requestName string) (*MCR, error) {
-	fmt.Println("============================")
 	mcr := &MCR{}
 
 	snodeDataCounts := make(map[string]int)
@@ -666,10 +665,8 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	}
 	mcr.DivergentReplies = len(mcr.Divergent)
 	if len(replies) != query {
-		fmt.Println("IN MESSAGE SUDDNELY")
 		mcr.Message = message
 	}
-	fmt.Println("============================")
 
 	// TODO
 	return mcr, nil
