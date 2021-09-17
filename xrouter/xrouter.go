@@ -584,7 +584,11 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	mcr := &MCR{}
 
 	snodeDataCounts := make(map[string]int)
+	uniqueReplies := make([]SnodeReply, 0)
 	for _, reply := range replies {
+		if _, ok := snodeDataCounts[string(reply.Hash)]; !ok {
+			uniqueReplies = append(uniqueReplies, reply)
+		}
 		snodeDataCounts[string(reply.Hash)] += 1
 	}
 
@@ -611,7 +615,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		reply SnodeReply
 	}
 	uniqueCount := make(map[string]responsePair, 0)
-	for _, _reply := range replies {
+	for _, _reply := range uniqueReplies {
 		_h := hashResponse(_reply.Reply)
 		if pair, ok := uniqueCount[_h]; ok {
 			// found existing hash!
@@ -758,13 +762,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			}
 			bufPost := bytes.NewBuffer(dataPost)
 
-			// fmt.Println(path)
-			// fmt.Println(snode.Endpoint())
-			endpoint := snode.EndpointPath(path)
-			// fmt.Println(endpoint)
-			// snode.EndpointPath(path)
-			// endpoint := fmt.Sprintf("http://75.119.155.29%s", path)
-			// Post parameters along with the request
+			endpoint := snode.EndpointPath(path) // Post parameters along with the request
 			res, err := http.Post(endpoint, "application/json", bufPost)
 			if err != nil {
 				log.Printf("failed to connect to snode %v %v", strPubkey, err)
@@ -826,8 +824,6 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 				mu.Unlock()
 			}
 
-			// fmt.Println(bad, "BAD RESPONSE, BUT MADE IT?")
-			// Store reply and exit if reply count is met
 			mu.Lock()
 			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
 			mu.Unlock()
