@@ -78,7 +78,7 @@ func main() {
 					"Result from %v: %v with %v divergent replies.\n",
 					hex.EncodeToString(reply.MostCommonReply.Pubkey),
 					string(reply.MostCommonReply.Reply),
-					reply.MostCommonReplyCount,
+					reply.DivergentReplies,
 				)
 				if len(reply.Divergent) != 0 {
 					log.Println("Diveregent replies are provided below.")
@@ -113,7 +113,7 @@ func main() {
 					"Result from %v: %v with %v divergent replies.\n",
 					hex.EncodeToString(reply.MostCommonReply.Pubkey),
 					string(reply.MostCommonReply.Reply),
-					reply.MostCommonReplyCount,
+					reply.DivergentReplies,
 				)
 				if len(reply.Divergent) != 0 {
 					log.Println("Diveregent replies are provided below.")
