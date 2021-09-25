@@ -54,49 +54,50 @@ func main() {
 	// 	log.Printf(service)
 	// }
 
-	// ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
-	// defer cancel2()
+	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel2()
 	queryCount := 7
-	// if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
-	// 	log.Printf("error: %v", err)
-	// 	return
-	// }
+	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
+		log.Printf("error: %v", err)
+		return
+	}
 
-	// {
-	// 	// Query the price oracle to obtain Bitcoin's price in USD
-	// 	var params []interface{}
-	// 	params = append(params, "BTC", "USD")
-	// 	if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
-	// 		log.Printf("error: %v", err)
-	// 		return
-	// 	} else {
-	// 		if len(reply.Divergent) == 0 && reply.MostCommonReplyCount == 0 {
-	// 			log.Printf("No replies found. %v\n", reply.Message)
-	// 		} else {
-	// 			log.Printf(
-	// 				"Result from %v: %v with %v divergent replies.\n",
-	// 				hex.EncodeToString(reply.MostCommonReply.Pubkey),
-	// 				string(reply.MostCommonReply.Reply),
-	// 				reply.DivergentReplies,
-	// 			)
-	// 			if len(reply.Divergent) != 0 {
-	// 				log.Println("Diveregent replies are provided below.")
-	// 				for _, v := range reply.Divergent {
-	// 					log.Printf(
-	// 						"Divergent result from %v: %v with %v reply counts.",
-	// 						hex.EncodeToString(v.Reply.Pubkey),
-	// 						string(v.Reply.Reply),
-	// 						v.ViewCount,
-	// 					)
-	// 				}
-	// 			}
-	// 		}
+	{
+		// Query the price oracle to obtain Bitcoin's price in USD
+		var params []interface{}
+		params = append(params, "BTC", "USD")
+		if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
+			log.Printf("error: %v", err)
+			return
+		} else {
+			if len(reply.Divergent) == 0 && reply.MostCommonReplyCount == 0 {
+				log.Printf("No replies found. %v\n", reply.Message)
+			} else {
+				log.Printf(
+					"Result from %v: %v with %v divergent replies and majority strength %.2f%%.\n",
+					hex.EncodeToString(reply.MostCommonReply.Pubkey),
+					string(reply.MostCommonReply.Reply),
+					reply.DivergentReplies,
+					reply.MajorityStrength,
+				)
+				if len(reply.Divergent) != 0 {
+					log.Println("Diveregent replies are provided below.")
+					for _, v := range reply.Divergent {
+						log.Printf(
+							"Divergent result from %v: %v with %v reply counts.",
+							hex.EncodeToString(v.Reply.Pubkey),
+							string(v.Reply.Reply),
+							v.ViewCount,
+						)
+					}
+				}
+			}
 
-	// 		log.Println("The full response is provided below.")
-	// 		s, _ := json.MarshalIndent(reply, "", "\t")
-	// 		log.Println(string(s))
-	// 	}
-	// }
+			log.Println("The full response is provided below.")
+			s, _ := json.MarshalIndent(reply, "", "\t")
+			log.Println(string(s))
+		}
+	}
 
 	{
 		// Query the BTC oracle to obtain the chain height
@@ -108,10 +109,11 @@ func main() {
 				log.Printf("No replies found. %v\n", reply.Message)
 			} else {
 				log.Printf(
-					"Result from %v: %v with %v divergent replies.\n",
+					"Result from %v: %v with %v divergent replies and majority strength %.2f%%.\n",
 					hex.EncodeToString(reply.MostCommonReply.Pubkey),
 					string(reply.MostCommonReply.Reply),
 					reply.DivergentReplies,
+					reply.MajorityStrength,
 				)
 				if len(reply.Divergent) != 0 {
 					log.Println("Diveregent replies are provided below.")

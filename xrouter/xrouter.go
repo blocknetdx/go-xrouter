@@ -111,13 +111,15 @@ func version() string {
 }
 
 type SnodeReply struct {
-	Pubkey []byte
-	Hash   []byte
-	Reply  []byte
+	Pubkey      []byte
+	Hash        []byte
+	Reply       []byte
+	ParsedReply string
 }
 
 type MCR struct {
 	MostCommonReplyCount int
+	MajorityStrength     float32
 	DivergentReplies     int
 	MostCommonReply      SnodeReply
 	Divergent            []DivergentReply
@@ -607,6 +609,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		}
 		mcr.MostCommonReplyCount = 1
 		mcr.MostCommonReply = replies[0]
+		mcr.MajorityStrength = 100.0
 		return mcr, nil
 	}
 
@@ -614,7 +617,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		count int
 		reply SnodeReply
 	}
-	uniqueCount := make(map[string]responsePair, 0)
+	uniqueCount := make(map[string]responsePair)
 	for _, _reply := range uniqueReplies {
 		_h := hashResponse(_reply.Reply)
 		if pair, ok := uniqueCount[_h]; ok {
@@ -671,6 +674,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	if len(replies) != query {
 		mcr.Message = message
 	}
+	mcr.MajorityStrength = float32(mcr.MostCommonReplyCount) / float32(len(uniqueReplies)) * 100
 
 	// TODO
 	return mcr, nil
@@ -824,8 +828,9 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 				mu.Unlock()
 			}
 
+			// fmt.Println(endpoint, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
 			mu.Lock()
-			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
+			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data, string(data)})
 			mu.Unlock()
 		}(snode)
 
