@@ -796,10 +796,10 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 				_ = res.Body.Close()
 				// bad = true
 				// ignore bad response
-				// mu.Lock()
-				// queried--
-				// mu.Unlock()
-				// return
+				mu.Lock()
+				queried--
+				mu.Unlock()
+				return
 			}
 
 			// Read response data, hash it and record unique responses
