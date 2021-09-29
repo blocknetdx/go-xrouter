@@ -72,6 +72,8 @@ func main() {
 		} else {
 			if len(reply.Divergent) == 0 && reply.MostCommonReplyCount == 0 {
 				log.Printf("No replies found. %v\n", reply.Message)
+			} else if len(reply.Divergent) != 0 && reply.MostCommonReplyCount == 0 {
+				log.Printf("No most common replies, but got %v divergent replies\n", reply.DivergentReplies)
 			} else {
 				log.Printf(
 					"Result from %v: %v with %v divergent replies and majority strength %.2f%%.\n",
@@ -80,19 +82,18 @@ func main() {
 					reply.DivergentReplies,
 					reply.MajorityStrength,
 				)
-				if len(reply.Divergent) != 0 {
-					log.Println("Diveregent replies are provided below.")
-					for _, v := range reply.Divergent {
-						log.Printf(
-							"Divergent result from %v: %v with %v reply counts.",
-							hex.EncodeToString(v.Reply.Pubkey),
-							string(v.Reply.Reply),
-							v.ViewCount,
-						)
-					}
+			}
+			if len(reply.Divergent) != 0 {
+				log.Println("Diveregent replies are provided below.")
+				for _, v := range reply.Divergent {
+					log.Printf(
+						"Divergent result from %v: %v with %v reply counts.",
+						hex.EncodeToString(v.Reply.Pubkey),
+						string(v.Reply.Reply),
+						v.ResponseCount,
+					)
 				}
 			}
-
 			log.Println("The full response is provided below.")
 			s, _ := json.MarshalIndent(reply, "", "\t")
 			log.Println(string(s))
@@ -107,6 +108,8 @@ func main() {
 		} else {
 			if len(reply.Divergent) == 0 && reply.MostCommonReplyCount == 0 {
 				log.Printf("No replies found. %v\n", reply.Message)
+			} else if len(reply.Divergent) != 0 && reply.MostCommonReplyCount == 0 {
+				log.Printf("No most common replies, but got %v divergent replies\n", reply.DivergentReplies)
 			} else {
 				log.Printf(
 					"Result from %v: %v with %v divergent replies and majority strength %.2f%%.\n",
@@ -115,16 +118,16 @@ func main() {
 					reply.DivergentReplies,
 					reply.MajorityStrength,
 				)
-				if len(reply.Divergent) != 0 {
-					log.Println("Diveregent replies are provided below.")
-					for _, v := range reply.Divergent {
-						log.Printf(
-							"Divergent result from %v: %v with %v reply counts.",
-							hex.EncodeToString(v.Reply.Pubkey),
-							string(v.Reply.Reply),
-							v.ViewCount,
-						)
-					}
+			}
+			if len(reply.Divergent) != 0 {
+				log.Println("Diveregent replies are provided below.")
+				for _, v := range reply.Divergent {
+					log.Printf(
+						"Divergent result from %v: %v with %v reply counts.",
+						hex.EncodeToString(v.Reply.Pubkey),
+						string(v.Reply.Reply),
+						v.ResponseCount,
+					)
 				}
 			}
 			log.Println("The full response is provided below.")
@@ -132,6 +135,7 @@ func main() {
 			log.Println(string(s))
 		}
 	}
+
 }
 
 func shutdown(client *xrouter.Client) {

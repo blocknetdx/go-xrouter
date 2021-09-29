@@ -127,8 +127,8 @@ type MCR struct {
 }
 
 type DivergentReply struct {
-	ViewCount int
-	Reply     SnodeReply
+	ResponseCount int
+	Reply         SnodeReply
 }
 
 type Config struct {
@@ -594,7 +594,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		snodeDataCounts[string(reply.Hash)] += 1
 	}
 
-	snodeDataLen := len(snodeDataCounts)
+	snodeDataLen := len(replies)
 
 	message := fmt.Sprintf("Failed to find enough peers supporting %s for %s whose fees fall within the limits set in your config file. You requested responses from %d nodes, but only got %d. Please try to connect to more peers before retrying the request.", requestName, service, query, snodeDataLen)
 
@@ -607,7 +607,8 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		if query > 1 {
 			mcr.Message = message
 		}
-		mcr.MostCommonReplyCount = 1
+		fmt.Println("HERE")
+		mcr.MostCommonReplyCount = snodeDataCounts[string(replies[0].Hash)]
 		mcr.MostCommonReply = replies[0]
 		mcr.MajorityStrength = 100.0
 		return mcr, nil
@@ -655,7 +656,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 
 	if !equalExist {
 		mcr.MostCommonReply = uniqueCount[maxKey].reply
-		mcr.MostCommonReplyCount = maxValue
+		mcr.MostCommonReplyCount = snodeDataCounts[string(uniqueCount[maxKey].reply.Hash)]
 	}
 	mcr.Divergent = make([]DivergentReply, 0)
 	if len(replies) != maxValue {
@@ -664,8 +665,9 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 			if k != maxKey || equalExist {
 				// actual divirgent
 				mcr.Divergent = append(mcr.Divergent, DivergentReply{
-					ViewCount: v.count,
-					Reply:     v.reply,
+					ResponseCount: snodeDataCounts[string(v.reply.Hash)],
+					// responseCount
+					Reply: v.reply,
 				})
 			}
 		}
@@ -674,7 +676,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	if len(replies) != query {
 		mcr.Message = message
 	}
-	mcr.MajorityStrength = float32(mcr.MostCommonReplyCount) / float32(len(uniqueReplies)) * 100
+	mcr.MajorityStrength = float32(mcr.MostCommonReplyCount) / float32(len(replies)) * 100
 
 	// TODO
 	return mcr, nil
@@ -726,9 +728,22 @@ func callFetchWrapper(s *Client, service string, xrfunc string, params []interfa
 
 // fetchDataFromSnodes queries N number of service nodes and returns the results.
 type FetchDataError struct {
+	Error fetchErrorInternal `json:"error"`
+	Code  int                `json:"code"`
+	ID    int                `json:"id"`
+}
+
+type fetchErrorInternal struct {
+	Code    int    `json:"code"`
+	Message string `json:"string"`
+}
+
+type FetchDataErrorSimple struct {
 	Error string `json:"error"`
 	Code  int    `json:"code"`
 }
+
+// "{\"result\": null, \"error\": {\"code\": -28, \"message\": \"Rewinding blocks...\"}, \"id\": 1}"
 
 func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
 	// TODO Blocknet penalize bad snodes
@@ -737,6 +752,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 	var mu sync.Mutex
 	queried := 0
 	validResults := 0
+	uniqueNodes := make(map[string]struct{})
 	for _, snode := range *snodes {
 		if !snode.EXRCompatible() {
 			continue
@@ -821,6 +837,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 				mu.Lock()
 				queried--
 				mu.Unlock()
+				return
 				// store this error below (no return here)
 			} else {
 				mu.Lock()
@@ -828,8 +845,25 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 				mu.Unlock()
 			}
 
-			// fmt.Println(endpoint, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
+			var jsonErrSimple FetchDataErrorSimple
+			if err := json.Unmarshal(data, &jsonErrSimple); err == nil {
+				mu.Lock()
+				queried--
+				mu.Unlock()
+				return
+				// store this error below (no return here)
+			} else {
+				mu.Lock()
+				validResults++
+				mu.Unlock()
+			}
+
 			mu.Lock()
+			if _, ok := uniqueNodes[snode.Endpoint()]; ok {
+				mu.Unlock()
+				return
+			}
+			uniqueNodes[snode.Endpoint()] = struct{}{}
 			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data, string(data)})
 			mu.Unlock()
 		}(snode)
