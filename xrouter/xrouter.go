@@ -117,24 +117,6 @@ type SnodeReply struct {
 	ParsedReply string
 }
 
-// {
-//     "consensus":{
-//         "majorityStrength": "57%",
-//         "mostCommonReplyCount": 4,
-//         "mostCommonReply": ["reply"],
-//         "divergentReplyCount": 3,
-//         "divergentReplies": [
-//             {"count": 2, "reply": ["reply"]},
-//             {"count": 1, "reply": ["reply"]}
-//         ]
-//     },
-//     "queryCount":"Failed to find enough peers supporting xrGetBlockCount for xr::BLOCK whose fees fall within the limits set in your config file. You requested responses from 12 nodes, but only got 7. Please try to connect to more peers before retrying the request."
-// }
-
-type Reply struct {
-	Reply string
-}
-
 type MCR struct {
 	Consensus  Consensus
 	QueryCount string
@@ -143,7 +125,7 @@ type MCR struct {
 type Consensus struct {
 	MajorityStrength     string // float and percent sign
 	MostCommonReplyCount int
-	MostCommonReply      Reply
+	MostCommonReply      string
 	DivergentReplyCount  int
 	DivergentReplies     []DivergentReply
 }
@@ -159,7 +141,7 @@ type Consensus struct {
 
 type DivergentReply struct {
 	Count int
-	Reply Reply
+	Reply string
 }
 
 type Config struct {
@@ -653,10 +635,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		}
 
 		consensus.MostCommonReplyCount = snodeDataCounts[string(replies[0].Hash)]
-		consensus.MostCommonReply = Reply{
-			// Hash:  replies[0].Hash,
-			Reply: replies[0].ParsedReply,
-		}
+		consensus.MostCommonReply = replies[0].ParsedReply
 		// mcr.MostCommonReplyCount = snodeDataCounts[string(replies[0].Hash)]
 		// mcr.MostCommonReply = replies[0]
 		consensus.MajorityStrength = "100%"
@@ -708,10 +687,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	// fix here
 	if !equalExist {
 		consensus.MostCommonReplyCount = snodeDataCounts[string(uniqueCount[maxKey].reply.Hash)]
-		consensus.MostCommonReply = Reply{
-			// Hash:  uniqueCount[maxKey].reply.Hash,
-			Reply: uniqueCount[maxKey].reply.ParsedReply,
-		}
+		consensus.MostCommonReply = uniqueCount[maxKey].reply.ParsedReply
 		// mcr.MostCommonReply = uniqueCount[maxKey].reply
 		// mcr.MostCommonReplyCount = snodeDataCounts[string(uniqueCount[maxKey].reply.Hash)]
 	}
@@ -724,10 +700,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 				consensus.DivergentReplies = append(consensus.DivergentReplies, DivergentReply{
 					Count: snodeDataCounts[string(v.reply.Hash)],
 					// responseCount
-					Reply: Reply{
-						// Hash:  v.reply.Hash,
-						Reply: v.reply.ParsedReply,
-					},
+					Reply: v.reply.ParsedReply,
 				})
 			}
 		}
@@ -843,8 +816,8 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 					return
 				}
 			}
-			bufPost := bytes.NewBuffer(dataPost)
 
+			bufPost := bytes.NewBuffer(dataPost)
 			endpoint := snode.EndpointPath(path) // Post parameters along with the request
 			res, err := http.Post(endpoint, "application/json", bufPost)
 			if err != nil {
@@ -854,6 +827,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 				mu.Unlock()
 				return
 			}
+
 			if res.StatusCode != http.StatusOK {
 				log.Printf("bad response from snode: %v %v", strPubkey, res.Status)
 				_ = res.Body.Close()
@@ -896,7 +870,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 
 			// Check for json error and try another snode if there's an error
 			var jsonErr FetchDataError
-			if err := json.Unmarshal(data, &jsonErr); err == nil {
+			if err := json.Unmarshal(data, &jsonErr); err == nil && jsonErr.Code != 0 {
 				mu.Lock()
 				queried--
 				mu.Unlock()
@@ -909,7 +883,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			}
 
 			var jsonErrSimple FetchDataErrorSimple
-			if err := json.Unmarshal(data, &jsonErrSimple); err == nil {
+			if err := json.Unmarshal(data, &jsonErrSimple); err == nil && jsonErr.Code != 0 {
 				mu.Lock()
 				queried--
 				mu.Unlock()
