@@ -132,7 +132,6 @@ type SnodeReply struct {
 // }
 
 type Reply struct {
-	Hash  []byte
 	Reply string
 }
 
@@ -655,7 +654,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 
 		consensus.MostCommonReplyCount = snodeDataCounts[string(replies[0].Hash)]
 		consensus.MostCommonReply = Reply{
-			Hash:  replies[0].Hash,
+			// Hash:  replies[0].Hash,
 			Reply: replies[0].ParsedReply,
 		}
 		// mcr.MostCommonReplyCount = snodeDataCounts[string(replies[0].Hash)]
@@ -710,7 +709,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	if !equalExist {
 		consensus.MostCommonReplyCount = snodeDataCounts[string(uniqueCount[maxKey].reply.Hash)]
 		consensus.MostCommonReply = Reply{
-			Hash:  uniqueCount[maxKey].reply.Hash,
+			// Hash:  uniqueCount[maxKey].reply.Hash,
 			Reply: uniqueCount[maxKey].reply.ParsedReply,
 		}
 		// mcr.MostCommonReply = uniqueCount[maxKey].reply
@@ -726,7 +725,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 					Count: snodeDataCounts[string(v.reply.Hash)],
 					// responseCount
 					Reply: Reply{
-						Hash:  v.reply.Hash,
+						// Hash:  v.reply.Hash,
 						Reply: v.reply.ParsedReply,
 					},
 				})
