@@ -117,18 +117,50 @@ type SnodeReply struct {
 	ParsedReply string
 }
 
-type MCR struct {
-	MostCommonReplyCount int
-	MajorityStrength     float32
-	DivergentReplies     int
-	MostCommonReply      SnodeReply
-	Divergent            []DivergentReply
-	Message              string
+// {
+//     "consensus":{
+//         "majorityStrength": "57%",
+//         "mostCommonReplyCount": 4,
+//         "mostCommonReply": ["reply"],
+//         "divergentReplyCount": 3,
+//         "divergentReplies": [
+//             {"count": 2, "reply": ["reply"]},
+//             {"count": 1, "reply": ["reply"]}
+//         ]
+//     },
+//     "queryCount":"Failed to find enough peers supporting xrGetBlockCount for xr::BLOCK whose fees fall within the limits set in your config file. You requested responses from 12 nodes, but only got 7. Please try to connect to more peers before retrying the request."
+// }
+
+type Reply struct {
+	Hash  []byte
+	Reply string
 }
 
+type MCR struct {
+	Consensus  Consensus
+	QueryCount string
+}
+
+type Consensus struct {
+	MajorityStrength     string // float and percent sign
+	MostCommonReplyCount int
+	MostCommonReply      Reply
+	DivergentReplyCount  int
+	DivergentReplies     []DivergentReply
+}
+
+// type MCR struct {
+// 	MostCommonReplyCount int
+// 	MajorityStrength     float32
+// 	DivergentReplies     int
+// 	MostCommonReply      SnodeReply
+// 	Divergent            []DivergentReply
+// 	Message              string
+// }
+
 type DivergentReply struct {
-	ResponseCount int
-	Reply         SnodeReply
+	Count int
+	Reply Reply
 }
 
 type Config struct {
@@ -584,6 +616,19 @@ func (s *Client) snodesForService(service, ns string) ([]*sn.ServiceNode, error)
 // MostCommonReply returns the most common reply from the reply list
 func MostCommonReply(replies []SnodeReply, query int, service, requestName string) (*MCR, error) {
 	mcr := &MCR{}
+	consensus := Consensus{}
+	// type MCR struct {
+	// 	Consensus  Consensus
+	// 	QueryCount string
+	// }
+
+	// type Consensus struct {
+	// 	MajorityStrength     string // float and percent sign
+	// 	MostCommonReplyCount int
+	// 	MostCommonReply      Reply
+	// 	DivergentReplyCount  int
+	// 	DivergentReplies     []DivergentReply
+	// }
 
 	snodeDataCounts := make(map[string]int)
 	uniqueReplies := make([]SnodeReply, 0)
@@ -599,18 +644,25 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	message := fmt.Sprintf("Failed to find enough peers supporting %s for %s whose fees fall within the limits set in your config file. You requested responses from %d nodes, but only got %d. Please try to connect to more peers before retrying the request.", requestName, service, query, snodeDataLen)
 
 	if snodeDataLen == 0 { // no result
-		mcr.Message = message
+		mcr.QueryCount = message
 		return mcr, errors.New("no replies found (b)")
 	}
 
 	if snodeDataLen == 1 { // single result
 		if query > 1 {
-			mcr.Message = message
+			mcr.QueryCount = message
 		}
-		fmt.Println("HERE")
-		mcr.MostCommonReplyCount = snodeDataCounts[string(replies[0].Hash)]
-		mcr.MostCommonReply = replies[0]
-		mcr.MajorityStrength = 100.0
+
+		consensus.MostCommonReplyCount = snodeDataCounts[string(replies[0].Hash)]
+		consensus.MostCommonReply = Reply{
+			Hash:  replies[0].Hash,
+			Reply: replies[0].ParsedReply,
+		}
+		// mcr.MostCommonReplyCount = snodeDataCounts[string(replies[0].Hash)]
+		// mcr.MostCommonReply = replies[0]
+		consensus.MajorityStrength = "100%"
+		// mcr.MajorityStrength = 100.0
+		mcr.Consensus = consensus
 		return mcr, nil
 	}
 
@@ -654,30 +706,42 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		}
 	}
 
+	// fix here
 	if !equalExist {
-		mcr.MostCommonReply = uniqueCount[maxKey].reply
-		mcr.MostCommonReplyCount = snodeDataCounts[string(uniqueCount[maxKey].reply.Hash)]
+		consensus.MostCommonReplyCount = snodeDataCounts[string(uniqueCount[maxKey].reply.Hash)]
+		consensus.MostCommonReply = Reply{
+			Hash:  uniqueCount[maxKey].reply.Hash,
+			Reply: uniqueCount[maxKey].reply.ParsedReply,
+		}
+		// mcr.MostCommonReply = uniqueCount[maxKey].reply
+		// mcr.MostCommonReplyCount = snodeDataCounts[string(uniqueCount[maxKey].reply.Hash)]
 	}
-	mcr.Divergent = make([]DivergentReply, 0)
+	consensus.DivergentReplies = make([]DivergentReply, 0)
 	if len(replies) != maxValue {
 		// we found divergents
 		for k, v := range uniqueCount {
 			if k != maxKey || equalExist {
 				// actual divirgent
-				mcr.Divergent = append(mcr.Divergent, DivergentReply{
-					ResponseCount: snodeDataCounts[string(v.reply.Hash)],
+				consensus.DivergentReplies = append(consensus.DivergentReplies, DivergentReply{
+					Count: snodeDataCounts[string(v.reply.Hash)],
 					// responseCount
-					Reply: v.reply,
+					Reply: Reply{
+						Hash:  v.reply.Hash,
+						Reply: v.reply.ParsedReply,
+					},
 				})
 			}
 		}
 	}
-	mcr.DivergentReplies = len(mcr.Divergent)
+	consensus.DivergentReplyCount = len(consensus.DivergentReplies)
 	if len(replies) != query {
-		mcr.Message = message
+		mcr.QueryCount = message
 	}
-	mcr.MajorityStrength = float32(mcr.MostCommonReplyCount) / float32(len(replies)) * 100
+	consensus.MajorityStrength = fmt.Sprintf("%.2f%%",
+		float32(consensus.MostCommonReplyCount)/float32(len(replies))*100,
+	)
 
+	mcr.Consensus = consensus
 	// TODO
 	return mcr, nil
 }
