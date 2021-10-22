@@ -32,7 +32,7 @@ const (
 	defaultRequiredServices = wire.SFNodeNetwork | wire.SFNodeList
 
 	// defaultTargetOutbound is the default number of outbound peers to target.
-	defaultTargetOutbound = 27
+	defaultTargetOutbound = 8
 
 	// connectionRetryInterval is the base amount of time to wait in between
 	// retries when connecting to persistent peers.  It is adjusted by the
@@ -757,20 +757,31 @@ func (s *Client) peerHandler() {
 		outboundGroups:  make(map[string]int),
 	}
 
-	// Seed handler
+	// Calculate the amount of peers we were able to seed from DNSSeeds
+	peerCount := 0
+	done := make(chan struct{}, len(s.params.DNSSeeds))
 	if len(s.params.DNSSeeds) > 0 {
+		// Wrap callback function to be able to count
+		fn := s.onAddrAdd(&peerCount, &done)
 		// Add peers discovered through DNS to the address manager.
 		connmgr.SeedFromDNS(s.params, defaultRequiredServices,
-			btcdLookup, func(addrs []*wire.NetAddress) {
-				// Bitcoind uses a lookup of the dns seeder here. This
-				// is rather strange since the values looked up by the
-				// DNS seed lookups will vary quite a lot.
-				// to replicate this behaviour we put all addresses as
-				// having come from the first one.
-				s.addrManager.AddAddresses(addrs, addrs[0])
-			})
+			btcdLookup, fn)
+
+	}
+	// Since inside SeedFromDNS there is a go func we need to sync.
+	// Each DNS seed on done will send to the channel
+	// so we cna iterate over channel until there are no results
+	for i := 0; i < len(s.params.DNSSeeds); i++ {
+		<-done
 	}
 
+	// Recreate connManager with new TargetOutbound and run it
+	connManagerConfig.TargetOutbound = uint32(peerCount)
+	cmgr, err := connmgr.New(connManagerConfig)
+	if err != nil {
+		return
+	}
+	s.connManager = cmgr
 	go s.connManager.Start()
 
 out:
@@ -827,6 +838,22 @@ cleanup:
 	}
 	s.wg.Done()
 	log.Printf("Peer handler done")
+}
+
+func (s *Client) onAddrAdd(counter *int, done *chan struct{}) func(addrs []*wire.NetAddress) {
+	return func(addrs []*wire.NetAddress) {
+		// peersCount = peersCount + 20
+		*counter = *counter + len(addrs)
+
+		// See how many peers were resolved from DNS
+		// Bitcoind uses a lookup of the dns seeder here. This
+		// is rather strange since the values looked up by the
+		// DNS seed lookups will vary quite a lot.
+		// to replicate this behaviour we put all addresses as
+		// having come from the first one.
+		s.addrManager.AddAddresses(addrs, addrs[0])
+		*done <- struct{}{}
+	}
 }
 
 // AddPeer adds a new peer that has already been connected to the server.
