@@ -55,53 +55,53 @@ func main() {
 
 	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel2()
-	queryCount := 2
-	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
+	queryCount := 10
+	if err := client.WaitForServices(ctx2, []string{"xr::SYS"}, queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
 	}
 
-	{
-		// Query the price oracle to obtain Bitcoin's price in USD
-		var params []interface{}
-		params = append(params, "BTC", "USD")
-		if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
-			log.Printf("error: %v", err)
-			return
-		} else {
-			if len(reply.Consensus.DivergentReplies) == 0 && reply.Consensus.MostCommonReplyCount == 0 {
-				log.Printf("No replies found. %v\n", reply.QueryCount)
-			} else if len(reply.Consensus.DivergentReplies) != 0 && reply.Consensus.MostCommonReplyCount == 0 {
-				log.Printf("No most common replies, but got %v divergent replies\n", reply.Consensus.DivergentReplies)
-			} else {
-				log.Printf(
-					"Result %v with %v divergent replies and majority strength %s.\n",
-					// hex.EncodeToString(reply.MostCommonReply.Pubkey),
-					string(reply.Consensus.MostCommonReply),
-					reply.Consensus.DivergentReplyCount,
-					reply.Consensus.MajorityStrength,
-				)
-			}
-			if len(reply.Consensus.DivergentReplies) != 0 {
-				log.Println("Diveregent replies are provided below.")
-				for _, v := range reply.Consensus.DivergentReplies {
-					log.Printf(
-						"Divergent result %v with %v reply counts.",
-						// hex.EncodeToString(v.Reply.),
-						string(v.Reply),
-						v.Count,
-					)
-				}
-			}
-			log.Println("The full response is provided below.")
-			s, _ := json.MarshalIndent(reply, "", "\t")
-			log.Println(string(s))
-		}
-	}
+	// {
+	// 	// Query the price oracle to obtain Bitcoin's price in USD
+	// 	var params []interface{}
+	// 	params = append(params, "BTC", "USD")
+	// 	if reply, err := client.CallService("xrs::CCSinglePrice", params, queryCount); err != nil {
+	// 		log.Printf("error: %v", err)
+	// 		return
+	// 	} else {
+	// 		if len(reply.Consensus.DivergentReplies) == 0 && reply.Consensus.MostCommonReplyCount == 0 {
+	// 			log.Printf("No replies found. %v\n", reply.QueryCount)
+	// 		} else if len(reply.Consensus.DivergentReplies) != 0 && reply.Consensus.MostCommonReplyCount == 0 {
+	// 			log.Printf("No most common replies, but got %v divergent replies\n", reply.Consensus.DivergentReplies)
+	// 		} else {
+	// 			log.Printf(
+	// 				"Result %v with %v divergent replies and majority strength %s.\n",
+	// 				// hex.EncodeToString(reply.MostCommonReply.Pubkey),
+	// 				string(reply.Consensus.MostCommonReply),
+	// 				reply.Consensus.DivergentReplyCount,
+	// 				reply.Consensus.MajorityStrength,
+	// 			)
+	// 		}
+	// 		if len(reply.Consensus.DivergentReplies) != 0 {
+	// 			log.Println("Diveregent replies are provided below.")
+	// 			for _, v := range reply.Consensus.DivergentReplies {
+	// 				log.Printf(
+	// 					"Divergent result %v with %v reply counts.",
+	// 					// hex.EncodeToString(v.Reply.),
+	// 					string(v.Reply),
+	// 					v.Count,
+	// 				)
+	// 			}
+	// 		}
+	// 		log.Println("The full response is provided below.")
+	// 		s, _ := json.MarshalIndent(reply, "", "\t")
+	// 		log.Println(string(s))
+	// 	}
+	// }
 
 	{
 		// Query the BTC oracle to obtain the chain height
-		if reply, err := client.GetBlockCount("BTCg", queryCount); err != nil {
+		if reply, err := client.GetBlockCount("SYS", queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
