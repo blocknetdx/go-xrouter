@@ -53,7 +53,7 @@ func main() {
 	// 	log.Printf(service)
 	// }
 
-	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
+	ctx2, cancel2 := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel2()
 	queryCount := 10
 	if err := client.WaitForServices(ctx2, []string{"xr::SYS"}, queryCount); err != nil {
