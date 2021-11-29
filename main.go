@@ -33,7 +33,7 @@ func main() {
 	// Start xrouter (this will begin querying the network)
 	client.Start()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	defer shutdown(client)
 
@@ -53,10 +53,10 @@ func main() {
 	//	log.Printf(service)
 	//}
 
-	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
+	ctx2, cancel2 := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel2()
-	queryCount := 1
-	if err := client.WaitForServices(ctx2, []string{"xrs::CCSinglePrice", "xr::BTC"}, queryCount); err != nil {
+	queryCount := 6
+	if err := client.WaitForServices(ctx2, []string{"xr::BLOCK"}, queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
 	}

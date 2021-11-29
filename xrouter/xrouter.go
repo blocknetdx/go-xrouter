@@ -128,6 +128,8 @@ type Config struct {
 	whitelists     []*net.IPNet
 }
 
+var connManagerConfig *connmgr.Config
+
 var cfg = Config{
 	125,
 	false,
@@ -218,7 +220,8 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 
 		return nil, errors.New("no valid connect address")
 	}
-	cmgr, err := connmgr.New(&connmgr.Config{
+
+	connManagerConfig = &connmgr.Config{
 		Listeners:      nil,
 		OnAccept:       nil,
 		RetryDuration:  connectionRetryInterval,
@@ -226,7 +229,8 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 		Dial:           btcdDial,
 		OnConnection:   s.outboundPeerConnected,
 		GetNewAddress:  newAddressFunc,
-	})
+	}
+	cmgr, err := connmgr.New(connManagerConfig)
 	if err != nil {
 		return nil, err
 	}
