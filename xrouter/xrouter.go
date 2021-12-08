@@ -294,6 +294,13 @@ func (s *Client) AddServiceNode(node *sn.ServiceNode) {
 	if _, ok := s.servicenodes[pkey]; ok {
 		return
 	}
+
+	// Check if snode is available
+	available := s.CheckSnodeAvailability(node)
+	if !available {
+		fmt.Println("FOUND BROKEN", node.Endpoint())
+		return
+	}
 	s.servicenodes[pkey] = node
 	for k, _ := range node.Services() {
 		s.services[k] = append(s.services[k], node)
@@ -564,6 +571,18 @@ func (s *Client) snodesForService(service, ns string) ([]*sn.ServiceNode, error)
 		return []*sn.ServiceNode{}, errors.New("no service nodes found for " + serv)
 	}
 	return snodes, nil
+}
+
+func (s *Client) CheckSnodeAvailability(node *sn.ServiceNode) bool {
+	bufPost := bytes.NewBuffer([]byte{})
+	res, err := http.Post(node.Endpoint(), "application/json", bufPost)
+	if err != nil {
+		return false
+	}
+	if res.StatusCode != http.StatusOK {
+		return false
+	}
+	return true
 }
 
 // MostCommonReply returns the most common reply from the reply list
