@@ -110,6 +110,13 @@ func version() string {
 	return version
 }
 
+type ListReply struct {
+	SPVWallets []string       `json:"spvwallets"`
+	Services   []string       `json:"services"`
+	NodeCounts map[string]int `json:"nodecounts"`
+	UUID       string         `json:"uuid"`
+}
+
 type SnodeReply struct {
 	Pubkey []byte
 	Hash   []byte
@@ -309,6 +316,30 @@ func (s *Client) ListNetworkServices() []string {
 		services = append(services, k)
 	}
 	return services
+}
+
+// GetNetworkServices returns all known SPV and XCloud services
+//  with the node count and additional info
+func (s *Client) GetNetworkServices() *ListReply {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	uid := uuid.New().String()
+	reply := &ListReply{
+		SPVWallets: make([]string, 0),
+		Services:   make([]string, 0),
+		UUID:       uid,
+		NodeCounts: make(map[string]int),
+	}
+
+	for k, nodes := range s.services {
+		if strings.HasPrefix(k, xrs) {
+			reply.Services = append(reply.Services, k)
+		} else {
+			reply.SPVWallets = append(reply.SPVWallets, k)
+		}
+		reply.NodeCounts[k] = len(nodes)
+	}
+	return reply
 }
 
 // HasNetworkService returns true if the network service was found. If no namespace
