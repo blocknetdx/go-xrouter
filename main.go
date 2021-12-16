@@ -67,7 +67,7 @@ func main() {
 		log.Printf("error: %v", err)
 		return
 	}
-	log.Printf("%v\n", string(out.Bytes()))
+	log.Printf("%v\n", out.String())
 
 	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel2()
