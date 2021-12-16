@@ -5,8 +5,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -52,6 +54,20 @@ func main() {
 	//for _, service := range client.ListNetworkServices() {
 	//	log.Printf(service)
 	//}
+
+	// List all services with counts
+	svcs := client.GetNetworkServices()
+	b, err := json.Marshal(svcs)
+	if err != nil {
+		log.Printf("error: %v", err)
+		return
+	}
+	var out bytes.Buffer
+	if err := json.Indent(&out, b, "", "  "); err != nil {
+		log.Printf("error: %v", err)
+		return
+	}
+	log.Printf("%v\n", string(out.Bytes()))
 
 	ctx2, cancel2 := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel2()
