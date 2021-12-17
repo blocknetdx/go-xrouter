@@ -605,7 +605,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		`Failed to find enough peers supporting %s
 		for %s whose fees fall within the limits set in your config file. 
 		You requested responses from %d nodes, but only got %d. 
-		Please try to connect to more peers before retrying the request.`
+		Please try to connect to more peers before retrying the request.`,
 		requestName, service, query, snodeDataLen)
 
 	if snodeDataLen == 0 { // no result
@@ -630,7 +630,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		reply SnodeReply
 	}
 	uniqueCount := make(map[string]responsePair)
-	
+
 	for _, _reply := range uniqueReplies {
 		_h := hashResponse(_reply.Reply)
 		if pair, ok := uniqueCount[_h]; ok {
