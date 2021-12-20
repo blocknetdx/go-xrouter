@@ -59,7 +59,7 @@ const (
 	xrGetBlocks         string = "xrGetBlocks"
 	xrGetTransaction    string = "xrGetTransaction"
 	xrGetTransactions   string = "xrGetTransactions"
-	xrDecodeTransaction string = "xrDecodeTransaction"
+	xrDecodeTransaction string = "xrDecodeRawTransaction"
 	xrSendTransaction   string = "xrSendTransaction"
 )
 
@@ -642,6 +642,7 @@ func callFetchWrapper(s *Client, service string, xrfunc string, params []interfa
 		return uid, []SnodeReply{}, fmt.Errorf("no services for token %s", nsservice)
 	}
 
+	fmt.Println("SNODES", len(snodes))
 	// fetch EXR compatible snodes
 	var endpoint string
 	if ns == xr {
@@ -753,6 +754,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 			}
 
 			// Store reply and exit if reply count is met
+			fmt.Println(snode.EndpointPath(path))
 			mu.Lock()
 			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data})
 			mu.Unlock()
