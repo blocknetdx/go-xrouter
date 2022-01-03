@@ -283,6 +283,7 @@ func (s *Client) WaitForServices(ctx context.Context, services []string, query i
 // AddServiceNode adds the specified service node to the client's list. Only EXR snodes
 // are added. Any services that do not support Enterprise XRouter are not added.
 func (s *Client) AddServiceNode(node *sn.ServiceNode) {
+	fmt.Printf("%+v\n", node)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Only support EXR node connections
