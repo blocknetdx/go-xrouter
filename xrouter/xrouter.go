@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/blocknetdx/go-xrouter/sn"
+	"github.com/blocknetdx/go-xrouter/storage"
 	"github.com/btcsuite/btcd/addrmgr"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/connmgr"
@@ -184,6 +185,7 @@ type Client struct {
 	startupTime    int64
 	bytesReceived  uint64 // Total bytes received from all peers since start
 	bytesSent      uint64 // Total bytes sent by all peers since start
+	storage        *storage.SNodeStorage
 }
 
 // NewClient creates and returns a new XRouter client.
@@ -250,7 +252,7 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 		return nil, err
 	}
 	s.connManager = cmgr
-
+	s.storage = storage.NewSNodeStorage("nodes.json")
 	return &s, nil
 }
 
@@ -317,6 +319,7 @@ func (s *Client) AddServiceNode(node *sn.ServiceNode) {
 	for k, _ := range node.Services() {
 		s.services[k] = append(s.services[k], node)
 	}
+	s.storage.Add(pkey, node)
 }
 
 // ListNetworkServices lists all known SPV and XCloud network services (xr and xrs).
@@ -555,6 +558,11 @@ func (s *Client) CallService(service string, params []interface{}, query int) (*
 	}
 }
 
+// GetSnodeList
+func (s *Client) GetSnodeList() {
+	// fmt.Printf("%+v\n", s.storage)
+}
+
 // addKnownAddresses adds the given addresses to the set of known addresses to
 // the peer to prevent sending duplicate addresses.
 func (s *Client) addKnownAddresses(addresses []*wire.NetAddress) {
@@ -733,7 +741,7 @@ func callFetchWrapper(s *Client, service string, xrfunc string, params []interfa
 	} else { // xrs namespace
 		endpoint = fmt.Sprintf("/%s/%s", ns, removeNamespace(nsservice))
 	}
-	replies, err := fetchDataFromSnodes(&snodes, endpoint, params, query)
+	replies, err := s.fetchDataFromSnodes(&snodes, endpoint, params, query)
 	if len(replies) <= 0 {
 		return uid, []SnodeReply{}, nil
 	}
@@ -759,7 +767,7 @@ type FetchDataErrorSimple struct {
 
 // "{\"result\": null, \"error\": {\"code\": -28, \"message\": \"Rewinding blocks...\"}, \"id\": 1}"
 
-func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
+func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
 	// TODO Blocknet penalize bad snodes
 	var replies []SnodeReply
 	var wg sync.WaitGroup
@@ -873,6 +881,7 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 				mu.Unlock()
 			}
 
+			_ = s.queryXrShowConfigs(snode)
 			mu.Lock()
 			if _, ok := uniqueNodes[snode.Endpoint()]; ok {
 				mu.Unlock()
@@ -897,6 +906,65 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 		return replies, errors.New("no replies found")
 	}
 	return replies, nil
+}
+
+func (s *Client) queryXrShowConfigs(node *sn.ServiceNode) bool {
+	pubkey := hex.EncodeToString(node.Pubkey().SerializeCompressed())
+	path := "/xrshowconfigs"
+	var dataPost []byte
+
+	bufPost := bytes.NewBuffer(dataPost)
+	endpoint := node.EndpointPath(path) // Post parameters along with the request
+	res, err := http.Post(endpoint, "application/json", bufPost)
+	if err != nil {
+		log.Printf("xrshowconfigs: failed to connect to snode %v %v", pubkey, err)
+		return false
+	}
+
+	if res.StatusCode != http.StatusOK {
+		log.Printf("xrshowconfigs: bad response from snode: %v %v", pubkey, res.Status)
+		_ = res.Body.Close()
+		return false
+	}
+
+	// Read response data, hash it and record unique responses
+	data, err := ioutil.ReadAll(res.Body)
+	_ = res.Body.Close()
+	if err != nil {
+		log.Printf("xrshowconfigs: unable to read response from snode %v", pubkey)
+		return false
+	}
+
+	if len(data) == 0 || data == nil {
+		// We got an empty reply
+		return false
+	}
+
+	// Compute hash for reply
+	hash := sha1.New()
+	_, err = hash.Write(data)
+	if err != nil {
+		return false
+	}
+
+	// Check for json error and try another snode if there's an error
+	var jsonErr FetchDataError
+	if err := json.Unmarshal(data, &jsonErr); err == nil && jsonErr.Code != 0 {
+		return false
+		// store this error below (no return here)
+	}
+
+	var jsonErrSimple FetchDataErrorSimple
+	if err := json.Unmarshal(data, &jsonErrSimple); err == nil && jsonErr.Code != 0 {
+		return false
+		// store this error below (no return here)
+	}
+	var response []*storage.XRShowConfigsResponse
+	if err := json.Unmarshal([]byte(data), &response); err != nil {
+		panic(err)
+	}
+	fmt.Printf("%+v\n", response)
+	return true
 }
 
 func hashResponse(response []byte) string {

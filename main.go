@@ -55,8 +55,8 @@ func main() {
 
 	ctx2, cancel2 := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel2()
-	queryCount := 10
-	if err := client.WaitForServices(ctx2, []string{"xr::SYS"}, queryCount); err != nil {
+	queryCount := 5
+	if err := client.WaitForServices(ctx2, []string{"xr::LTC"}, queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
 	}
@@ -101,7 +101,7 @@ func main() {
 
 	{
 		// Query the BTC oracle to obtain the chain height
-		if reply, err := client.GetBlockCount("SYS", queryCount); err != nil {
+		if reply, err := client.GetBlockCount("LTC", queryCount); err != nil {
 			log.Printf("error: %v", err)
 			return
 		} else {
@@ -134,6 +134,8 @@ func main() {
 			log.Println(string(s))
 		}
 	}
+
+	client.GetSnodeList()
 }
 
 func shutdown(client *xrouter.Client) {

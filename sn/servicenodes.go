@@ -9,13 +9,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
 	"log"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 type ServiceNode struct {
@@ -43,9 +44,9 @@ type ServiceNodeConfig struct {
 var (
 	reWallets = regexp.MustCompile("\\s*wallets\\s*=\\s*([a-zA-Z0-9$,_]+)\\s*$")
 	rePlugins = regexp.MustCompile("\\s*plugins\\s*=\\s*([a-zA-Z0-9$,_]+)\\s*$")
-	reHost = regexp.MustCompile("\\s*host\\s*=\\s*([a-zA-Z0-9\\.]+)\\s*$")
-	rePort = regexp.MustCompile("\\s*port\\s*=\\s*(\\d+)\\s*$")
-	reTls = regexp.MustCompile("\\s*tls\\s*=\\s*([^\\s]+)\\s*$")
+	reHost    = regexp.MustCompile("\\s*host\\s*=\\s*([a-zA-Z0-9\\.]+)\\s*$")
+	rePort    = regexp.MustCompile("\\s*port\\s*=\\s*(\\d+)\\s*$")
+	reTls     = regexp.MustCompile("\\s*tls\\s*=\\s*([^\\s]+)\\s*$")
 )
 
 func NewServiceNode(pubkey *btcec.PublicKey, config string) (*ServiceNode, error) {
@@ -69,14 +70,14 @@ func NewServiceNode(pubkey *btcec.PublicKey, config string) (*ServiceNode, error
 			if match := reWallets.FindStringSubmatch(line); len(match) == 2 {
 				wallets := strings.Split(match[1], ",")
 				for _, wallet := range wallets {
-					s.services["xr::" + wallet] = true
+					s.services["xr::"+wallet] = true
 				}
 			}
 		} else if strings.HasPrefix(line, "plugins=") {
 			if match := rePlugins.FindStringSubmatch(line); len(match) == 2 {
 				plugins := strings.Split(match[1], ",")
 				for _, plugin := range plugins {
-					s.services["xrs::" + plugin] = true
+					s.services["xrs::"+plugin] = true
 				}
 			}
 		} else if strings.HasPrefix(line, "host=") {
@@ -143,4 +144,8 @@ func (s *ServiceNode) Services() map[string]bool {
 func (s *ServiceNode) HasService(service string) bool {
 	_, ok := s.services[service]
 	return ok
+}
+
+func (s *ServiceNode) HostIP() string {
+	return s.hostIP.String()
 }
