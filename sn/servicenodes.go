@@ -121,6 +121,55 @@ func NewServiceNode(pubkey *btcec.PublicKey, config string) (*ServiceNode, error
 	return &s, nil
 }
 
+func NewServiceNodeFromConfig(config string) (*ServiceNode, error) {
+	s := ServiceNode{}
+	s.services = make(map[string]bool)
+	confBytes := []byte(config)
+	buf := bytes.NewBuffer(confBytes)
+	scanner := bufio.NewScanner(buf)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "wallets=") {
+			if match := reWallets.FindStringSubmatch(line); len(match) == 2 {
+				wallets := strings.Split(match[1], ",")
+				for _, wallet := range wallets {
+					s.services["xr::"+wallet] = true
+				}
+			}
+		} else if strings.HasPrefix(line, "plugins=") {
+			if match := rePlugins.FindStringSubmatch(line); len(match) == 2 {
+				plugins := strings.Split(match[1], ",")
+				for _, plugin := range plugins {
+					s.services["xrs::"+plugin] = true
+				}
+			}
+		} else if strings.HasPrefix(line, "host=") {
+			if match := reHost.FindStringSubmatch(line); len(match) == 2 {
+				if ips, err := net.LookupIP(match[1]); err != nil {
+					continue
+				} else {
+					s.host = match[1]
+					s.hostIP = ips[0]
+				}
+			}
+		} else if strings.HasPrefix(line, "port=") {
+			if match := rePort.FindStringSubmatch(line); len(match) == 2 {
+				s.port, _ = strconv.Atoi(match[1])
+			}
+		} else if strings.HasPrefix(line, "tls=") {
+			if match := reTls.FindStringSubmatch(line); len(match) == 2 {
+				if match[1] == "true" || match[1] == "1" {
+					s.tls = true
+				} else {
+					s.tls = false
+				}
+			}
+		}
+	}
+	return &s, nil
+
+}
+
 func (s *ServiceNode) Pubkey() *btcec.PublicKey {
 	return s.pubkey
 }

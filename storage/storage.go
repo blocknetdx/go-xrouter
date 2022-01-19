@@ -12,6 +12,7 @@ import (
 type SNodeStorage struct {
 	ips    map[string]struct{}
 	snodes map[string]*sn.ServiceNode
+	count  map[string]int
 	sync.Mutex
 	filename string
 }
@@ -33,6 +34,28 @@ func (ssn *SNodeStorage) Add(pubkey string, node *sn.ServiceNode) {
 	}
 	ssn.ips[ip] = struct{}{}
 	ssn.snodes[pubkey] = node
+}
+
+func (ssn *SNodeStorage) AddCount(pubkey string, node *sn.ServiceNode) {
+	ssn.Lock()
+	defer ssn.Unlock()
+	if _, ok := ssn.snodes[pubkey]; !ok {
+		ssn.Add(pubkey, node)
+	}
+	if v, ok := ssn.count[pubkey]; ok {
+		ssn.count[pubkey] = v + 1
+	} else {
+		ssn.count[pubkey] = 1
+	}
+}
+
+func (ssn *SNodeStorage) Remove(pubkey string, node *sn.ServiceNode) {
+	ssn.Lock()
+	defer ssn.Unlock()
+	ip := node.HostIP()
+	delete(ssn.ips, ip)
+	delete(ssn.snodes, pubkey)
+	delete(ssn.count, pubkey)
 }
 
 func (ssn *SNodeStorage) List() []*sn.ServiceNode {

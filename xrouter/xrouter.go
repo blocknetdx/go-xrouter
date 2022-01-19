@@ -882,6 +882,8 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 			}
 
 			_ = s.queryXrShowConfigs(snode)
+			s.storage.AddCount(strPubkey, snode)
+
 			mu.Lock()
 			if _, ok := uniqueNodes[snode.Endpoint()]; ok {
 				mu.Unlock()
@@ -963,7 +965,13 @@ func (s *Client) queryXrShowConfigs(node *sn.ServiceNode) bool {
 	if err := json.Unmarshal([]byte(data), &response); err != nil {
 		panic(err)
 	}
-	fmt.Printf("%+v\n", response)
+	for _, v := range response {
+		snode, err := sn.NewServiceNodeFromConfig(v.Config)
+		if err != nil {
+			continue
+		}
+		s.storage.Add(pubkey, snode)
+	}
 	return true
 }
 
