@@ -560,9 +560,8 @@ func (s *Client) CallService(service string, params []interface{}, query int) (*
 }
 
 // GetSnodeList
-func (s *Client) GetSnodeList() {
-	// fmt.Printf("%+v\n", s.storage)
-	s.storage.Store()
+func (s *Client) GetSnodeList() []*sn.ExportedServiceNode {
+	return s.storage.List()
 }
 
 // addKnownAddresses adds the given addresses to the set of known addresses to

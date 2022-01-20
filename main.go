@@ -135,7 +135,7 @@ func main() {
 		}
 	}
 
-	client.GetSnodeList()
+	fmt.Printf("LIST OF NODES: %+v\n", client.GetSnodeList())
 }
 
 func shutdown(client *xrouter.Client) {
