@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/blocknetdx/go-xrouter/sn"
-	"github.com/blocknetdx/go-xrouter/storage"
 	"github.com/btcsuite/btcd/addrmgr"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/connmgr"
@@ -185,7 +184,7 @@ type Client struct {
 	startupTime    int64
 	bytesReceived  uint64 // Total bytes received from all peers since start
 	bytesSent      uint64 // Total bytes sent by all peers since start
-	storage        *storage.SNodeStorage
+	storage        *sn.SNodeStorage
 }
 
 // NewClient creates and returns a new XRouter client.
@@ -252,7 +251,9 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 		return nil, err
 	}
 	s.connManager = cmgr
-	s.storage = storage.NewSNodeStorage("nodes.json")
+	s.storage = sn.NewSNodeStorage("nodes.json")
+	s.storage.Load()
+	time.Sleep(10 * time.Minute)
 	return &s, nil
 }
 
@@ -561,6 +562,7 @@ func (s *Client) CallService(service string, params []interface{}, query int) (*
 // GetSnodeList
 func (s *Client) GetSnodeList() {
 	// fmt.Printf("%+v\n", s.storage)
+	s.storage.Store()
 }
 
 // addKnownAddresses adds the given addresses to the set of known addresses to
@@ -961,7 +963,7 @@ func (s *Client) queryXrShowConfigs(node *sn.ServiceNode) bool {
 		return false
 		// store this error below (no return here)
 	}
-	var response []*storage.XRShowConfigsResponse
+	var response []*sn.XRShowConfigsResponse
 	if err := json.Unmarshal([]byte(data), &response); err != nil {
 		panic(err)
 	}

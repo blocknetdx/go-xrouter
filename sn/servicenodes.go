@@ -21,13 +21,13 @@ import (
 
 type ServiceNode struct {
 	pubkey        *btcec.PublicKey
-	host          string
-	port          int
+	host          string `json:"host"`
+	port          int    `json:"post"`
 	hostIP        net.IP
-	tls           bool
-	endpoint      string
-	exrCompatible bool
-	services      map[string]bool
+	tls           bool            `json:"ttls"`
+	endpoint      string          `json:"endpoint"`
+	exrCompatible bool            `json:"exr_compatible"`
+	services      map[string]bool `json:"services"`
 }
 
 type ServiceNodeConfigXRouter struct {
