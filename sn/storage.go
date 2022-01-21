@@ -60,11 +60,10 @@ func (ssn *SNodeStorage) AddCount(pubkey string, node *ServiceNode) {
 	}
 }
 
-func (ssn *SNodeStorage) Remove(pubkey string, node *ServiceNode) {
+func (ssn *SNodeStorage) Remove(pubkey string, IP string) {
 	ssn.Lock()
 	defer ssn.Unlock()
-	ip := node.HostIP()
-	delete(ssn.IPs, ip)
+	delete(ssn.IPs, IP)
 	delete(ssn.SNodes, pubkey)
 	delete(ssn.Count, pubkey)
 }

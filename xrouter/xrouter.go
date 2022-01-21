@@ -115,6 +115,7 @@ type SnodeReply struct {
 	Hash        []byte
 	Reply       []byte
 	ParsedReply string
+	IP          string
 }
 
 type MCR struct {
@@ -373,7 +374,7 @@ func (s *Client) GetBlockCount(service string, query int) (*MCR, error) {
 	if _, replies, err := s.GetBlockCountRaw(service, query); err != nil {
 		return nil, err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetBlockCount)
+		return s.MostCommonReply(replies, query, service, xrGetBlockCount)
 	}
 }
 
@@ -397,7 +398,7 @@ func (s *Client) GetBlockHash(service string, block interface{}, query int) (*MC
 	if _, replies, err := s.GetBlockHashRaw(service, block, query); err != nil {
 		return nil, err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetBlockHash)
+		return s.MostCommonReply(replies, query, service, xrGetBlockHash)
 	}
 }
 
@@ -420,7 +421,7 @@ func (s *Client) GetBlock(service string, block interface{}, query int) (*MCR, e
 	if _, replies, err := s.GetBlockRaw(service, block, query); err != nil {
 		return nil, err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetBlock)
+		return s.MostCommonReply(replies, query, service, xrGetBlock)
 	}
 }
 
@@ -445,7 +446,7 @@ func (s *Client) GetBlocks(service string, blocks []interface{}, query int) (*MC
 	if _, replies, err := s.GetBlocksRaw(service, blocks, query); err != nil {
 		return nil, err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetBlocks)
+		return s.MostCommonReply(replies, query, service, xrGetBlocks)
 	}
 }
 
@@ -468,7 +469,7 @@ func (s *Client) GetTransaction(service string, block interface{}, query int) (*
 	if _, replies, err := s.GetTransactionRaw(service, block, query); err != nil {
 		return nil, err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetTransaction)
+		return s.MostCommonReply(replies, query, service, xrGetTransaction)
 	}
 }
 
@@ -493,7 +494,7 @@ func (s *Client) GetTransactions(service string, txids []interface{}, query int)
 	if _, replies, err := s.GetTransactionsRaw(service, txids, query); err != nil {
 		return nil, err
 	} else {
-		return MostCommonReply(replies, query, service, xrGetTransactions)
+		return s.MostCommonReply(replies, query, service, xrGetTransactions)
 	}
 }
 
@@ -516,7 +517,7 @@ func (s *Client) DecodeTransaction(service string, txhex interface{}, query int)
 	if _, replies, err := s.DecodeTransactionRaw(service, txhex, query); err != nil {
 		return nil, err
 	} else {
-		return MostCommonReply(replies, query, service, xrDecodeTransaction)
+		return s.MostCommonReply(replies, query, service, xrDecodeTransaction)
 	}
 }
 
@@ -539,7 +540,7 @@ func (s *Client) SendTransaction(service string, txhex interface{}, query int) (
 	if _, replies, err := s.SendTransactionRaw(service, txhex, query); err != nil {
 		return nil, err
 	} else {
-		return MostCommonReply(replies, query, service, xrSendTransaction)
+		return s.MostCommonReply(replies, query, service, xrSendTransaction)
 	}
 }
 
@@ -555,7 +556,7 @@ func (s *Client) CallService(service string, params []interface{}, query int) (*
 	if _, replies, err := s.CallServiceRaw(service, params, query); err != nil {
 		return nil, err
 	} else {
-		return MostCommonReply(replies, query, service, xrsService)
+		return s.MostCommonReply(replies, query, service, xrsService)
 	}
 }
 
@@ -595,7 +596,7 @@ func (s *Client) snodesForService(service, ns string) ([]*sn.ServiceNode, error)
 }
 
 // MostCommonReply returns the most common reply from the reply list
-func MostCommonReply(replies []SnodeReply, query int, service, requestName string) (*MCR, error) {
+func (s *Client) MostCommonReply(replies []SnodeReply, query int, service, requestName string) (*MCR, error) {
 	mcr := &MCR{}
 	consensus := Consensus{}
 
@@ -638,6 +639,7 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 		count int
 		reply SnodeReply
 	}
+
 	uniqueCount := make(map[string]responsePair)
 
 	for _, _reply := range uniqueReplies {
@@ -690,6 +692,9 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 					Count: snodeDataCounts[string(v.reply.Hash)],
 					Reply: v.reply.ParsedReply,
 				})
+
+				// remove divergent nodes
+				s.storage.Remove(string(v.reply.Pubkey), v.reply.IP)
 			}
 		}
 	}
@@ -697,8 +702,16 @@ func MostCommonReply(replies []SnodeReply, query int, service, requestName strin
 	if len(replies) != query {
 		mcr.QueryCount = message
 	}
+	majorityStrength := float32(consensus.MostCommonReplyCount) / float32(len(replies)) * 100
+
+	if majorityStrength < 0.5 {
+		// remove everything, since the majorityCount is just too low
+		for _, v := range uniqueReplies {
+			s.storage.Remove(string(v.Pubkey), v.IP)
+		}
+	}
 	consensus.MajorityStrength = fmt.Sprintf("%.2f%%",
-		float32(consensus.MostCommonReplyCount)/float32(len(replies))*100,
+		majorityStrength,
 	)
 
 	mcr.Consensus = consensus
@@ -891,7 +904,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 				return
 			}
 			uniqueNodes[snode.Endpoint()] = struct{}{}
-			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data, string(data)})
+			replies = append(replies, SnodeReply{snode.Pubkey().SerializeCompressed(), hash.Sum(nil), data, string(data), snode.HostIP()})
 			mu.Unlock()
 		}(snode)
 
