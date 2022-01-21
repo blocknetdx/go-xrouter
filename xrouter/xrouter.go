@@ -253,7 +253,7 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 	s.connManager = cmgr
 	s.storage = sn.NewSNodeStorage("nodes.json")
 	s.storage.Load()
-	time.Sleep(10 * time.Minute)
+	// time.Sleep(10 * time.Minute)
 	return &s, nil
 }
 
