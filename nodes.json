@@ -1,9 +1,6 @@
 {
  "ips": {
   "103.142.21.27": {},
-  "104.21.38.198": {},
-  "104.21.7.145": {},
-  "104.21.9.56": {},
   "107.191.98.130": {},
   "130.185.119.91": {},
   "135.181.139.29": {},
@@ -13,22 +10,20 @@
   "161.97.175.210": {},
   "167.88.120.13": {},
   "168.235.104.156": {},
-  "172.67.159.32": {},
-  "172.67.187.154": {},
   "172.98.83.4": {},
   "176.9.8.76": {},
   "178.3.71.208": {},
   "185.217.127.108": {},
   "192.184.90.115": {},
   "194.163.143.68": {},
+  "194.163.189.111": {},
   "207.244.243.245": {},
   "213.80.102.61": {},
   "217.128.22.94": {},
+  "2606:4700:3032::6815:26c6": {},
   "2606:4700:3032::6815:791": {},
-  "2606:4700:3032::ac43:8a21": {},
   "2606:4700:3036::ac43:9f20": {},
   "3.17.240.214": {},
-  "34.69.68.109": {},
   "62.171.130.165": {},
   "66.94.117.51": {},
   "66.96.162.144": {},
@@ -38,7 +33,11 @@
  },
  "snodes": {
   "020e7b5b29455978821191016f8d8a80d23205c4486e28da4f26eb3f6568bdaa6d": {
-   "pubkey": "020e7b5b29455978821191016f8d8a80d23205c4486e28da4f26eb3f6568bdaa6d",
+   "pubkey": {
+    "Curve": null,
+    "X": 6550331240712196254796278940214717234998040463060034436853029341953812965997,
+    "Y": 57397935592093377139235164574032847349191025555018847253547570336848562877062
+   },
    "host": "178.3.71.208",
    "port": 80,
    "ttls": false,
@@ -53,7 +52,11 @@
    }
   },
   "022d58ff9223bccdcd778f9346d744b59ed8bacd4a16db42272a8708344adbdcd0": {
-   "pubkey": "022d58ff9223bccdcd778f9346d744b59ed8bacd4a16db42272a8708344adbdcd0",
+   "pubkey": {
+    "Curve": null,
+    "X": 20511324613181729930192273629906175892621077721384557373123892279670252231888,
+    "Y": 62991110089504750842913569114891653075918527155689747431394554364896818877876
+   },
    "host": "217.128.22.94",
    "port": 80,
    "ttls": false,
@@ -67,7 +70,11 @@
    }
   },
   "02325c56540368bc171f0a04530c2fcd82913ac88133482539121790296eec9ca4": {
-   "pubkey": "02325c56540368bc171f0a04530c2fcd82913ac88133482539121790296eec9ca4",
+   "pubkey": {
+    "Curve": null,
+    "X": 22778788174303297049110094257800779885094157609157533216839072566175110831268,
+    "Y": 35356565555100681439825315857344765027006766825242330925538668673300337889926
+   },
    "host": "api.oracleminer.com",
    "port": 80,
    "ttls": true,
@@ -197,7 +204,11 @@
    }
   },
   "0233c4e79ca9be36bc351b50aabe6e72ecabf08cc5bfa682479ec22f3bdc5676af": {
-   "pubkey": "0233c4e79ca9be36bc351b50aabe6e72ecabf08cc5bfa682479ec22f3bdc5676af",
+   "pubkey": {
+    "Curve": null,
+    "X": 23415855829476964545883174439600533483726661673277486928370985691017221928623,
+    "Y": 89869819027530191929069912217412729085065892809999379733492532605180650532004
+   },
    "host": "america1.microguy.net",
    "port": 80,
    "ttls": false,
@@ -210,8 +221,33 @@
     "xrs::glc_getBalance": true
    }
   },
+  "023717a4afbe124b444976f823f8a9bf6604224516f59e628f5ff071ca6f11456b": {
+   "pubkey": {
+    "Curve": null,
+    "X": 24918980778977955740467746136758881196636860159741182619754255546449728193899,
+    "Y": 46645098615860224444084008222359594121382564675858228001375607605609722078194
+   },
+   "host": "66.94.117.51",
+   "port": 80,
+   "ttls": false,
+   "endpoint": "http://66.94.117.51:80",
+   "exr_compatible": true,
+   "services": {
+    "xr::BLOCK": true,
+    "xr::BTC": true,
+    "xr::DASH": true,
+    "xr::LTC": true,
+    "xr::PIVX": true,
+    "xr::SYS": true,
+    "xr::UNO": true
+   }
+  },
   "023e2df52d10f4bc3a08effd7698a25b8eb61ac3042cc81377296ffa15487f5cf0": {
-   "pubkey": "023e2df52d10f4bc3a08effd7698a25b8eb61ac3042cc81377296ffa15487f5cf0",
+   "pubkey": {
+    "Curve": null,
+    "X": 28124596872915781997220934406103543693295070708886349869837089857320895077616,
+    "Y": 34144694370949981945450449278283643286213249508829945746758894834935495778318
+   },
    "host": "155.4.6.84",
    "port": 80,
    "ttls": false,
@@ -223,7 +259,6 @@
     "xr::DASH": true,
     "xr::DGB": true,
     "xr::GBX": true,
-    "xr::LBC": true,
     "xr::LTC": true,
     "xr::PHR": true,
     "xr::PIVX": true,
@@ -232,7 +267,11 @@
    }
   },
   "0253d2fdb682c9b4fca4753453d531e16f34daf8f11e2bea133ad2eb7a39813ff9": {
-   "pubkey": "0253d2fdb682c9b4fca4753453d531e16f34daf8f11e2bea133ad2eb7a39813ff9",
+   "pubkey": {
+    "Curve": null,
+    "X": 37914755378324177733880984454518461910594398682968336075377484937427733790713,
+    "Y": 93415858457872331746901428695954962914762821567970506907736869536738352721708
+   },
    "host": "207.244.243.245",
    "port": 80,
    "ttls": false,
@@ -248,7 +287,11 @@
    }
   },
   "025ed0a51bd2e1550d872b23ce5e406c1326d0850a8dae2cd1cc0dc66ab43396d7": {
-   "pubkey": "025ed0a51bd2e1550d872b23ce5e406c1326d0850a8dae2cd1cc0dc66ab43396d7",
+   "pubkey": {
+    "Curve": null,
+    "X": 42886051494575002460134732096091561681838126747544219927975822339746821281495,
+    "Y": 25847537791823172476413118806625010467109349892838522252904166820286814349308
+   },
    "host": "90.211.82.84",
    "port": 80,
    "ttls": false,
@@ -263,7 +306,11 @@
    }
   },
   "027073e066beee92437ce5a98f26d57f7261a193e636b4799f44f110426cc46a65": {
-   "pubkey": "027073e066beee92437ce5a98f26d57f7261a193e636b4799f44f110426cc46a65",
+   "pubkey": {
+    "Curve": null,
+    "X": 50863775214979068806137253345965411436524429332414231144891799092568812448357,
+    "Y": 72499182833400832376806777707390727305526160883742763194470676885478790735458
+   },
    "host": "213.80.102.61",
    "port": 80,
    "ttls": false,
@@ -277,7 +324,11 @@
    }
   },
   "0276e1397083c5d284048c33946034616466e1fe9866e1c6c76e9b972d72631dee": {
-   "pubkey": "0276e1397083c5d284048c33946034616466e1fe9866e1c6c76e9b972d72631dee",
+   "pubkey": {
+    "Curve": null,
+    "X": 53770853155333653678923326286717041194486454901308475736434056230104893431278,
+    "Y": 42698258501522513451147621748625729826030064097222544027866771489932255761682
+   },
    "host": "api.crosschaintools.com",
    "port": 80,
    "ttls": true,
@@ -289,7 +340,11 @@
    }
   },
   "0283ffe4c0bc35d667d79933c16878c26eb1c44150d820186e26a44b470c616fa1": {
-   "pubkey": "0283ffe4c0bc35d667d79933c16878c26eb1c44150d820186e26a44b470c616fa1",
+   "pubkey": {
+    "Curve": null,
+    "X": 59705107960224071528058247309241491438205609545584120479395059469522703576993,
+    "Y": 20978656623261627577611573779063861054091171272223021022559116296234529284182
+   },
    "host": "62.171.130.165",
    "port": 80,
    "ttls": false,
@@ -304,7 +359,11 @@
    }
   },
   "02a5d0279e484a3df81acd611e1052d2e0797e796564ecbc25c7fe19f36e9985e5": {
-   "pubkey": "02a5d0279e484a3df81acd611e1052d2e0797e796564ecbc25c7fe19f36e9985e5",
+   "pubkey": {
+    "Curve": null,
+    "X": 74999397641104982678986289332800472297391711507336201618412227052449442661861,
+    "Y": 94955456385357906232427398490410478327886567901794952613434585254799722144556
+   },
    "host": "75.119.155.29",
    "port": 80,
    "ttls": false,
@@ -322,7 +381,11 @@
    }
   },
   "02c561401c76586e855e0b62b1a0ea3a80a7278a75a29a500185507a9ac341d89e": {
-   "pubkey": "02c561401c76586e855e0b62b1a0ea3a80a7278a75a29a500185507a9ac341d89e",
+   "pubkey": {
+    "Curve": null,
+    "X": 89277457815294912183310927158635296947927560686633053184828479067652385527966,
+    "Y": 50302012167571291557940839941522218783100836473844393893115390245827943983716
+   },
    "host": "144.91.66.243",
    "port": 80,
    "ttls": false,
@@ -336,7 +399,11 @@
    }
   },
   "02caa2f4d219f3039f40ed94c973d1656a4b602c3a2b8069a884c3e8725f96e54b": {
-   "pubkey": "02caa2f4d219f3039f40ed94c973d1656a4b602c3a2b8069a884c3e8725f96e54b",
+   "pubkey": {
+    "Curve": null,
+    "X": 91655114328744103226038998343846466199413522101010204410988815725843524805963,
+    "Y": 63709685611189667935347890846785932617854372498274669078923420709875143732022
+   },
    "host": "34.69.68.109",
    "port": 80,
    "ttls": false,
@@ -345,7 +412,11 @@
    "services": {}
   },
   "02ce23c2c22793f76e32ab992b587f01eb8d0348d7428a93b8a52264703799cd4a": {
-   "pubkey": "02ce23c2c22793f76e32ab992b587f01eb8d0348d7428a93b8a52264703799cd4a",
+   "pubkey": {
+    "Curve": null,
+    "X": 93239630628609099526014914672375342912807553001666617944486951693948794031434,
+    "Y": 35013424170968544828665682074855489808758651812237405422652141718045613751316
+   },
    "host": "api.blockinbrick.com",
    "port": 80,
    "ttls": false,
@@ -367,7 +438,11 @@
    }
   },
   "02d26b4e182c2390e2e32bad671bcd881719fe5d9f4e225b77a7965926bd83d3a2": {
-   "pubkey": "02d26b4e182c2390e2e32bad671bcd881719fe5d9f4e225b77a7965926bd83d3a2",
+   "pubkey": {
+    "Curve": null,
+    "X": 95175289826319370178820910978920085681079756523762098136481782725491602740130,
+    "Y": 46695139423846430416541142397357198260745734276118546405755953250344436102484
+   },
    "host": "130.185.119.91",
    "port": 80,
    "ttls": false,
@@ -382,8 +457,229 @@
     "xr::SYS": true
    }
   },
+  "02d9d8db34fa78fb0d3c25dbfbf2884afcaf192a443da76e03f30003bc71fca5b2": {
+   "pubkey": {
+    "Curve": null,
+    "X": 98535040019305952595889238898998697104993008283316059443003098556863681963442,
+    "Y": 104497865818031683728928348029481451402375380161915343667196128863105702814972
+   },
+   "host": "api.oracleminer.com",
+   "port": 80,
+   "ttls": true,
+   "endpoint": "https://api.oracleminer.com:443",
+   "exr_compatible": true,
+   "services": {
+    "xr::BCH": true,
+    "xr::BLOCK": true,
+    "xr::BTC": true,
+    "xr::DASH": true,
+    "xr::DGB": true,
+    "xr::DOGE": true,
+    "xr::ETC": true,
+    "xr::ETH": true,
+    "xr::LTC": true,
+    "xr::MONA": true,
+    "xr::NEO": true,
+    "xr::SYS": true,
+    "xr::XMR": true,
+    "xr::ZEN": true,
+    "xrs::4chanBoards": true,
+    "xrs::4chanThreadViewer": true,
+    "xrs::4chanThreadViewerPrice": true,
+    "xrs::4chanThreads": true,
+    "xrs::BitlyURLShortener": true,
+    "xrs::BlackJack": true,
+    "xrs::BlackJackHIT": true,
+    "xrs::BlackJackSTAND": true,
+    "xrs::CCMultiPrice": true,
+    "xrs::CCSinglePrice": true,
+    "xrs::CCTopExchangesVolumeByPair": true,
+    "xrs::CCTopListMarketCap": true,
+    "xrs::CCTopListVolume24H": true,
+    "xrs::CCTopListVolumeByPair": true,
+    "xrs::CurrencyExchangeRate": true,
+    "xrs::CurrentWeatherData": true,
+    "xrs::GlobalStockLatestInfo": true,
+    "xrs::GlobalStockSymbolSearch": true,
+    "xrs::LiveSportsOdds": true,
+    "xrs::LiveSportsOddsList": true,
+    "xrs::TelegramSendMsg": true,
+    "xrs::TelegramUserRegistration": true,
+    "xrs::TrollBox": true,
+    "xrs::TrollBoxMsg": true,
+    "xrs::TwilioSMSStatus": true,
+    "xrs::TwilioSendSMS": true,
+    "xrs::TwitterSearch": true,
+    "xrs::WorldCurrencyList": true,
+    "xrs::bch_getbestblockhash": true,
+    "xrs::btc_getbestblockhash": true,
+    "xrs::btc_getdifficulty": true,
+    "xrs::btc_getmempoolinfo": true,
+    "xrs::btc_getrawmempool": true,
+    "xrs::btc_getrawmempoolcount": true,
+    "xrs::dash_getbestblockhash": true,
+    "xrs::dgb_getbestblockhash": true,
+    "xrs::dxGet24hrTradeHistory": true,
+    "xrs::dxGet24hrTradeSummary": true,
+    "xrs::dxGetOrders": true,
+    "xrs::etc_accounts": true,
+    "xrs::etc_blockNumber": true,
+    "xrs::etc_call": true,
+    "xrs::etc_chainId": true,
+    "xrs::etc_estimateGas": true,
+    "xrs::etc_gasPrice": true,
+    "xrs::etc_getBalance": true,
+    "xrs::etc_getBlockByHash": true,
+    "xrs::etc_getBlockByNumber": true,
+    "xrs::etc_getBlockTransactionCountByHash": true,
+    "xrs::etc_getBlockTransactionCountByNumber": true,
+    "xrs::etc_getCode": true,
+    "xrs::etc_getFilterChanges": true,
+    "xrs::etc_getFilterLogs": true,
+    "xrs::etc_getLogs": true,
+    "xrs::etc_getStorageAt": true,
+    "xrs::etc_getTransactionByBlockHashAndIndex": true,
+    "xrs::etc_getTransactionByBlockNumberAndIndex": true,
+    "xrs::etc_getTransactionByHash": true,
+    "xrs::etc_getTransactionCount": true,
+    "xrs::etc_getTransactionReceipt": true,
+    "xrs::etc_getUncleByBlockHashAndIndex": true,
+    "xrs::etc_getUncleByBlockNumberAndIndex": true,
+    "xrs::etc_getUncleCountByBlockHash": true,
+    "xrs::etc_getUncleCountByBlockNumber": true,
+    "xrs::etc_getWork": true,
+    "xrs::etc_hashrate": true,
+    "xrs::etc_mining": true,
+    "xrs::etc_net_listening": true,
+    "xrs::etc_net_peerCount": true,
+    "xrs::etc_net_version": true,
+    "xrs::etc_newBlockFilter": true,
+    "xrs::etc_newFilter": true,
+    "xrs::etc_newPendingTransactionFilter": true,
+    "xrs::etc_protocolVersion": true,
+    "xrs::etc_sendRawTransaction": true,
+    "xrs::etc_submitWork": true,
+    "xrs::etc_syncing": true,
+    "xrs::etc_uninstallFilter": true,
+    "xrs::etc_unsubscribe": true,
+    "xrs::etc_web3_clientVersion": true,
+    "xrs::etc_web3_sha3": true,
+    "xrs::eth_accounts": true,
+    "xrs::eth_blockNumber": true,
+    "xrs::eth_call": true,
+    "xrs::eth_chainId": true,
+    "xrs::eth_estimateGas": true,
+    "xrs::eth_gasPrice": true,
+    "xrs::eth_getBalance": true,
+    "xrs::eth_getBlockByHash": true,
+    "xrs::eth_getBlockByNumber": true,
+    "xrs::eth_getBlockTransactionCountByHash": true,
+    "xrs::eth_getBlockTransactionCountByNumber": true,
+    "xrs::eth_getCode": true,
+    "xrs::eth_getFilterChanges": true,
+    "xrs::eth_getFilterLogs": true,
+    "xrs::eth_getLogs": true,
+    "xrs::eth_getStorageAt": true,
+    "xrs::eth_getTransactionByBlockHashAndIndex": true,
+    "xrs::eth_getTransactionByBlockNumberAndIndex": true,
+    "xrs::eth_getTransactionByHash": true,
+    "xrs::eth_getTransactionCount": true,
+    "xrs::eth_getTransactionReceipt": true,
+    "xrs::eth_getUncleByBlockHashAndIndex": true,
+    "xrs::eth_getUncleByBlockNumberAndIndex": true,
+    "xrs::eth_getUncleCountByBlockHash": true,
+    "xrs::eth_getUncleCountByBlockNumber": true,
+    "xrs::eth_getWork": true,
+    "xrs::eth_hashrate": true,
+    "xrs::eth_hexToDecimal": true,
+    "xrs::eth_mining": true,
+    "xrs::eth_newBlockFilter": true,
+    "xrs::eth_newFilter": true,
+    "xrs::eth_newPendingTransactionFilter": true,
+    "xrs::eth_passthrough": true,
+    "xrs::eth_protocolVersion": true,
+    "xrs::eth_sendRawTransaction": true,
+    "xrs::eth_submitWork": true,
+    "xrs::eth_syncing": true,
+    "xrs::eth_uninstallFilter": true,
+    "xrs::eth_unsubscribe": true,
+    "xrs::ltc_getbestblockhash": true,
+    "xrs::neo_getaccountstate": true,
+    "xrs::neo_getapplicationlog": true,
+    "xrs::neo_getassetstate": true,
+    "xrs::neo_getbestblockhash": true,
+    "xrs::neo_getblockheader": true,
+    "xrs::neo_getblocksysfee": true,
+    "xrs::neo_getclaimable": true,
+    "xrs::neo_getconnectioncount": true,
+    "xrs::neo_getcontractstate": true,
+    "xrs::neo_getmetricblocktimestamp": true,
+    "xrs::neo_getnep5balances": true,
+    "xrs::neo_getnep5transfers": true,
+    "xrs::neo_getpeers": true,
+    "xrs::neo_getrawmempool": true,
+    "xrs::neo_getrawtransaction": true,
+    "xrs::neo_getstorage": true,
+    "xrs::neo_gettransactionheight": true,
+    "xrs::neo_gettxout": true,
+    "xrs::neo_getunclaimed": true,
+    "xrs::neo_getunspents": true,
+    "xrs::neo_getvalidators": true,
+    "xrs::neo_getversion": true,
+    "xrs::neo_listplugins": true,
+    "xrs::neo_validateaddress": true,
+    "xrs::net_listening": true,
+    "xrs::net_peerCount": true,
+    "xrs::net_version": true,
+    "xrs::omni_getactivations": true,
+    "xrs::omni_getactivecrowdsales": true,
+    "xrs::omni_getactivedexsells": true,
+    "xrs::omni_getallbalancesforaddress": true,
+    "xrs::omni_getallbalancesforid": true,
+    "xrs::omni_getbalance": true,
+    "xrs::omni_getcrowdsale": true,
+    "xrs::omni_getcurrentconsensushash": true,
+    "xrs::omni_getgrants": true,
+    "xrs::omni_getinfo": true,
+    "xrs::omni_getorderbook": true,
+    "xrs::omni_getpayload": true,
+    "xrs::omni_getproperty": true,
+    "xrs::omni_getseedblocks": true,
+    "xrs::omni_getsto": true,
+    "xrs::omni_gettrade": true,
+    "xrs::omni_gettradehistoryforaddress": true,
+    "xrs::omni_gettradehistoryforpair": true,
+    "xrs::omni_gettransaction": true,
+    "xrs::omni_listblockstransactions": true,
+    "xrs::omni_listblocktransactions": true,
+    "xrs::omni_listpendingtransactions": true,
+    "xrs::omni_listproperties": true,
+    "xrs::omni_listtransactions": true,
+    "xrs::web3_clientVersion": true,
+    "xrs::web3_sha3": true,
+    "xrs::xmr_get_block": true,
+    "xrs::xmr_get_block_count": true,
+    "xrs::xmr_get_block_header_by_hash": true,
+    "xrs::xmr_get_block_header_by_height": true,
+    "xrs::xmr_get_block_headers_range": true,
+    "xrs::xmr_get_fee_estimate": true,
+    "xrs::xmr_get_last_block_header": true,
+    "xrs::xmr_get_transaction_pool": true,
+    "xrs::xmr_get_transaction_pool_stats": true,
+    "xrs::xmr_get_transactions": true,
+    "xrs::xmr_get_version": true,
+    "xrs::xmr_hard_fork_info": true,
+    "xrs::xmr_on_get_block_hash": true,
+    "xrs::xmr_send_raw_transaction": true,
+    "xrs::zen_getbestblockhash": true
+   }
+  },
   "02dc8b82ecaa043e69cf8631c52607e93faeb4df9b68a3f1056d20a6291587bafa": {
-   "pubkey": "02dc8b82ecaa043e69cf8631c52607e93faeb4df9b68a3f1056d20a6291587bafa",
+   "pubkey": {
+    "Curve": null,
+    "X": 99755322037800132467341699374520931539305725385689822289384711805351122942714,
+    "Y": 90864497659317214420761163444702649385728480894628121358491210919827102399950
+   },
    "host": "89.151.220.172",
    "port": 80,
    "ttls": false,
@@ -403,7 +699,11 @@
    }
   },
   "02f17d7c7de409343ca656b8c0871a116a4513226f0474ff40854b6d6ff9aa91ee": {
-   "pubkey": "02f17d7c7de409343ca656b8c0871a116a4513226f0474ff40854b6d6ff9aa91ee",
+   "pubkey": {
+    "Curve": null,
+    "X": 109229111602219821890076682351971796053599453001286780609060380169340107526638,
+    "Y": 34605865704932304580667179840266037359465271811930080382819328628902841473972
+   },
    "host": "newyork1.microguy.net",
    "port": 80,
    "ttls": false,
@@ -416,8 +716,53 @@
     "xrs::glc_getBalance": true
    }
   },
+  "02f606694cc9f90683a00609233b205d0e97b5cd451e8583ef02f402b406b0365b": {
+   "pubkey": {
+    "Curve": null,
+    "X": 111280288587464775310387147417086065463738289955088525228691464097824733410907,
+    "Y": 21186845189570053321547790041152753554196903566570571774816594714972088132820
+   },
+   "host": "217.128.22.94",
+   "port": 80,
+   "ttls": false,
+   "endpoint": "http://217.128.22.94:80",
+   "exr_compatible": true,
+   "services": {
+    "xr::BLOCK": true,
+    "xr::BTC": true,
+    "xr::DASH": true,
+    "xr::DGB": true,
+    "xr::LTC": true,
+    "xr::PIVX": true,
+    "xr::RVN": true,
+    "xr::SYS": true,
+    "xrs::eth_passthrough": true
+   }
+  },
+  "03051ff880a8775fb050881ea709ec1e8dd350d75546c02ac35ac225f98df314c5": {
+   "pubkey": {
+    "Curve": null,
+    "X": 2318051603633211837941535810307764404633665810048596137583636004342286456005,
+    "Y": 62723421225839694202300015946735661223270833694401797543187150634083134418539
+   },
+   "host": "207.244.243.245",
+   "port": 80,
+   "ttls": false,
+   "endpoint": "http://207.244.243.245:80",
+   "exr_compatible": true,
+   "services": {
+    "xr::BLOCK": true,
+    "xr::LTC": true,
+    "xr::PIVX": true,
+    "xrs::xquery": true
+   }
+  },
   "03253fe64f398bcf7b6c9b6534fffb28e5892a6c9d3fa54dff86db158bcc68c565": {
-   "pubkey": "03253fe64f398bcf7b6c9b6534fffb28e5892a6c9d3fa54dff86db158bcc68c565",
+   "pubkey": {
+    "Curve": null,
+    "X": 16848476300217758436544778268635435444632951222583895219420537525138639865189,
+    "Y": 11319681785262202851214693693528329737321593795607510305643190650995284432323
+   },
    "host": "america2.microguy.net",
    "port": 80,
    "ttls": false,
@@ -431,7 +776,11 @@
    }
   },
   "032b4b88e21442c2ab76e69b2e9036c5168ea3e54be2b6eebd70d2bee353c7112b": {
-   "pubkey": "032b4b88e21442c2ab76e69b2e9036c5168ea3e54be2b6eebd70d2bee353c7112b",
+   "pubkey": {
+    "Curve": null,
+    "X": 19582910751523653298338736816158334558969864635653963658612893429286243340587,
+    "Y": 37856353793584587033487910976553410994843364612868246301688649765872004129249
+   },
    "host": "143.178.72.67",
    "port": 80,
    "ttls": false,
@@ -444,7 +793,11 @@
    }
   },
   "032bba5b1753ab14fe55794f10e0ce97b4b67866be4c95b6ed1aa9a1e03d62fa0e": {
-   "pubkey": "032bba5b1753ab14fe55794f10e0ce97b4b67866be4c95b6ed1aa9a1e03d62fa0e",
+   "pubkey": {
+    "Curve": null,
+    "X": 19778714730936864734681071100874757971729601377750610554983172384358481984014,
+    "Y": 27344223240592182578703993517076606118786783346921928779801754263733501690253
+   },
    "host": "172.98.83.4",
    "port": 80,
    "ttls": false,
@@ -458,7 +811,11 @@
    }
   },
   "032f3d052c91229c7af665780fa188d4d5e20675f830c47e6d636d849dbf5227a8": {
-   "pubkey": "032f3d052c91229c7af665780fa188d4d5e20675f830c47e6d636d849dbf5227a8",
+   "pubkey": {
+    "Curve": null,
+    "X": 21366517264618909539958864504951434603382310722470460406747182648266721470376,
+    "Y": 44647181640252719031910039268634746561406136964096557568525339693632637192179
+   },
    "host": "176.9.8.76",
    "port": 80,
    "ttls": false,
@@ -476,11 +833,17 @@
     "xr::PIVX": true,
     "xr::RVN": true,
     "xr::SYS": true,
-    "xr::UNO": true
+    "xr::TRTT": true,
+    "xr::UNO": true,
+    "xr::XC": true
    }
   },
   "03393fe1b3676935158d6ab633855d190b9a1a290c66f6aee8b3b20bb15a4ea58a": {
-   "pubkey": "03393fe1b3676935158d6ab633855d190b9a1a290c66f6aee8b3b20bb15a4ea58a",
+   "pubkey": {
+    "Curve": null,
+    "X": 25894701463976149486354005889683132040721119533080583126635381669134162896266,
+    "Y": 110552814593100262991456175242132168852618908818029406901913691435122160512173
+   },
    "host": "194.163.143.68",
    "port": 80,
    "ttls": false,
@@ -504,7 +867,11 @@
    }
   },
   "034f88164d2062380b130c67e43c138c471415f23f394c3396eead787f3eea3195": {
-   "pubkey": "034f88164d2062380b130c67e43c138c471415f23f394c3396eead787f3eea3195",
+   "pubkey": {
+    "Curve": null,
+    "X": 35973160156633825966412388870709446622833749881154567702523120320057319240085,
+    "Y": 78108855375014452515344622126797671926566422614766887238939702256911756226265
+   },
    "host": "161.97.175.210",
    "port": 80,
    "ttls": false,
@@ -517,8 +884,28 @@
     "xr::SYS": true
    }
   },
+  "0361007b5a0a6b4c641ef49ffd994b959e60f1ed2a41bd7d529c1f91b8ca7f163a": {
+   "pubkey": {
+    "Curve": null,
+    "X": 43875197654869957874470359160197966562436375263945078653426586712882892707386,
+    "Y": 17979393773019708636565972166233967462732628157100821202225820203452906461347
+   },
+   "host": "api.crosschaintools.com",
+   "port": 80,
+   "ttls": true,
+   "endpoint": "https://api.crosschaintools.com:443",
+   "exr_compatible": true,
+   "services": {
+    "xr::BLOCK": true,
+    "xrs::GetDailyPeerList": true
+   }
+  },
   "03621b4c0a3c370f04a4190d10c2945283d9b92fbbc83725967e20b002c2f72014": {
-   "pubkey": "03621b4c0a3c370f04a4190d10c2945283d9b92fbbc83725967e20b002c2f72014",
+   "pubkey": {
+    "Curve": null,
+    "X": 44374888840572332512818096042516673579308777288190213461987533339544142684180,
+    "Y": 71754735819365688007675855402942669231554278419664186492024866811644550622755
+   },
    "host": "103.142.21.27",
    "port": 80,
    "ttls": false,
@@ -531,7 +918,11 @@
    }
   },
   "039d80ac813a7fc95a5b9dd285df99fbb9ceceb5aae25af7252b8f5ef78da97fe8": {
-   "pubkey": "039d80ac813a7fc95a5b9dd285df99fbb9ceceb5aae25af7252b8f5ef78da97fe8",
+   "pubkey": {
+    "Curve": null,
+    "X": 71240464236229905456406274768151811259738376546663154581826143333018728234984,
+    "Y": 8261574068119867756609415438353757747262879227508496289551622483023119784037
+   },
    "host": "api.specminer.com",
    "port": 443,
    "ttls": false,
@@ -556,7 +947,11 @@
    }
   },
   "03a2e68cd42ee2cf0d86bf2424f3ca4820e2998624c877bc0e89a7c21a2fa78c7e": {
-   "pubkey": "03a2e68cd42ee2cf0d86bf2424f3ca4820e2998624c877bc0e89a7c21a2fa78c7e",
+   "pubkey": {
+    "Curve": null,
+    "X": 73682028260323096572472290740049473964240356448430732564194113829590478064766,
+    "Y": 38666352490133231884857831174425077592025468707397919618459131033366084847059
+   },
    "host": "seaport1.microguy.net",
    "port": 80,
    "ttls": false,
@@ -570,7 +965,11 @@
    }
   },
   "03b59ac37046833efca76a1bbc687825660704a5936a4048e52084fdbe2f283c8f": {
-   "pubkey": "03b59ac37046833efca76a1bbc687825660704a5936a4048e52084fdbe2f283c8f",
+   "pubkey": {
+    "Curve": null,
+    "X": 82142068909024590270282352776622519813928992232691234264499225609185775860879,
+    "Y": 66564843735552091791719715915105432461537870005008293279307565477306551886739
+   },
    "host": "185.217.127.108",
    "port": 80,
    "ttls": false,
@@ -587,7 +986,11 @@
    }
   },
   "03bfc0f9c1a0b38bfac90cc5c68790809f186a27f952b2346a10095ab27b14ecc6": {
-   "pubkey": "03bfc0f9c1a0b38bfac90cc5c68790809f186a27f952b2346a10095ab27b14ecc6",
+   "pubkey": {
+    "Curve": null,
+    "X": 86732712470875215515544048057465995785669528167099577104286730281010337213638,
+    "Y": 2620301672846531622086086938409981844000844826507226494834934039051652815011
+   },
    "host": "3.17.240.214",
    "port": 8081,
    "ttls": false,
@@ -600,7 +1003,11 @@
    }
   },
   "03ea88e254c9b647bbe645798a779ea88a2981b7eaf088232cc83cf3c5e393b2cc": {
-   "pubkey": "03ea88e254c9b647bbe645798a779ea88a2981b7eaf088232cc83cf3c5e393b2cc",
+   "pubkey": {
+    "Curve": null,
+    "X": 106083059849846846211054399209528717746030022628998412808071738965458142081740,
+    "Y": 57890147816203945303402724701018097370169735954115953330923004796690081204749
+   },
    "host": "135.181.139.29",
    "port": 80,
    "ttls": false,
@@ -611,7 +1018,11 @@
    }
   },
   "03ecd0ff2472dd18e7070366a265460c3027f53fb7a18485c144d847a2eb6d459b": {
-   "pubkey": "03ecd0ff2472dd18e7070366a265460c3027f53fb7a18485c144d847a2eb6d459b",
+   "pubkey": {
+    "Curve": null,
+    "X": 107115097383097838601549700406840783854346311863066046017181184126000858744219,
+    "Y": 77019897002633223558191202480753542595525797551556469397495215821505576506365
+   },
    "host": "66.94.117.51",
    "port": 80,
    "ttls": false,
@@ -626,12 +1037,32 @@
     "xr::SYS": true,
     "xr::UNO": true
    }
+  },
+  "03f42c33b373342ee66ec9f35c5b9ffbd843a9c16c6ff0d5572f0dfe94fe031ade": {
+   "pubkey": {
+    "Curve": null,
+    "X": 110442433152193767879039664974912049439791346499378881041856883948422837770974,
+    "Y": 61215375019508811783485696326013110484982391113704127245752877251025594642409
+   },
+   "host": "194.163.189.111",
+   "port": 80,
+   "ttls": false,
+   "endpoint": "http://194.163.189.111:80",
+   "exr_compatible": true,
+   "services": {
+    "xr::BLOCK": true,
+    "xr::DASH": true,
+    "xr::DOGE": true,
+    "xr::DOGEC": true,
+    "xr::SYS": true
+   }
   }
  },
  "count": {
-  "022d58ff9223bccdcd778f9346d744b59ed8bacd4a16db42272a8708344adbdcd0": 4,
-  "023e2df52d10f4bc3a08effd7698a25b8eb61ac3042cc81377296ffa15487f5cf0": 4,
-  "0283ffe4c0bc35d667d79933c16878c26eb1c44150d820186e26a44b470c616fa1": 3
- },
- "filename": "nodes.json"
+  "023e2df52d10f4bc3a08effd7698a25b8eb61ac3042cc81377296ffa15487f5cf0": 1,
+  "02a5d0279e484a3df81acd611e1052d2e0797e796564ecbc25c7fe19f36e9985e5": 1,
+  "02c561401c76586e855e0b62b1a0ea3a80a7278a75a29a500185507a9ac341d89e": 1,
+  "02d26b4e182c2390e2e32bad671bcd881719fe5d9f4e225b77a7965926bd83d3a2": 1,
+  "02f606694cc9f90683a00609233b205d0e97b5cd451e8583ef02f402b406b0365b": 1
+ }
 }

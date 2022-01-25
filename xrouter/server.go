@@ -904,7 +904,7 @@ func (s *Client) Start() {
 // Stop gracefully shuts down the server by stopping and disconnecting all
 // peers and the main listener.
 func (s *Client) Stop() error {
-	s.storage.Store()
+	s.storeSNodes()
 	// Make sure this only happens once.
 	if atomic.AddInt32(&s.shutdown, 1) != 1 {
 		log.Printf("Server is already in the process of shutting down")

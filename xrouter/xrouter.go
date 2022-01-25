@@ -16,6 +16,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -66,6 +67,10 @@ const (
 // XRouter Non-SPV calls
 const (
 	xrsService string = "xrService"
+)
+
+const (
+	snodeFilename = "nodes.json"
 )
 
 // xrNS return the XRouter namespace with delimiter.
@@ -162,8 +167,6 @@ var cfg = Config{
 
 type Client struct {
 	params         *chaincfg.Params
-	servicenodes   map[string]*sn.ServiceNode
-	services       map[string][]*sn.ServiceNode
 	mu             sync.Mutex
 	wg             sync.WaitGroup
 	addrManager    *addrmgr.AddrManager
@@ -185,7 +188,12 @@ type Client struct {
 	startupTime    int64
 	bytesReceived  uint64 // Total bytes received from all peers since start
 	bytesSent      uint64 // Total bytes sent by all peers since start
-	storage        *sn.SNodeStorage
+	// storage        *sn.SNodeStorage
+
+	servicenodes map[string]*sn.ServiceNode
+	services     map[string][]*sn.ServiceNode
+	svcIps       map[string]struct{}
+	counts       map[string]int
 }
 
 // NewClient creates and returns a new XRouter client.
@@ -194,6 +202,8 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 	s.params = &params
 	s.servicenodes = make(map[string]*sn.ServiceNode)
 	s.services = make(map[string][]*sn.ServiceNode)
+	s.svcIps = make(map[string]struct{})
+	s.counts = make(map[string]int)
 	s.mu = sync.Mutex{}
 	s.addrManager = addrmgr.New(cfg.DataDir, btcdLookup)
 	s.newPeers = make(chan *serverPeer, cfg.MaxPeers)
@@ -252,9 +262,7 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 		return nil, err
 	}
 	s.connManager = cmgr
-	s.storage = sn.NewSNodeStorage("nodes.json")
-	s.storage.Load()
-	// time.Sleep(10 * time.Minute)
+	s.loadSNodes()
 	return &s, nil
 }
 
@@ -319,9 +327,8 @@ func (s *Client) AddServiceNode(node *sn.ServiceNode) {
 	}
 	s.servicenodes[pkey] = node
 	for k, _ := range node.Services() {
-		s.services[k] = append(s.services[k], node)
+		s.properlyAddSnode(node, k)
 	}
-	s.storage.Add(pkey, node)
 }
 
 // ListNetworkServices lists all known SPV and XCloud network services (xr and xrs).
@@ -561,8 +568,17 @@ func (s *Client) CallService(service string, params []interface{}, query int) (*
 }
 
 // GetSnodeList
-func (s *Client) GetSnodeList() []*sn.ExportedServiceNode {
-	return s.storage.List()
+func (s *Client) GetSnodeList() []sn.ExportedServiceNode {
+
+	// FIX HERE
+	sns := make([]*sn.ServiceNode, len(s.servicenodes))
+	i := 0
+	for _, v := range s.servicenodes {
+		sns[i] = v
+		i++
+	}
+	fmt.Println("GET NODE")
+	return sn.ConvertToExportMultiple(sns)
 }
 
 // addKnownAddresses adds the given addresses to the set of known addresses to
@@ -694,7 +710,8 @@ func (s *Client) MostCommonReply(replies []SnodeReply, query int, service, reque
 				})
 
 				// remove divergent nodes
-				s.storage.Remove(string(v.reply.Pubkey), v.reply.IP)
+				// FIX HERE
+				s.properlyRemoveSnode(string(v.reply.Pubkey), v.reply.IP)
 			}
 		}
 	}
@@ -707,7 +724,8 @@ func (s *Client) MostCommonReply(replies []SnodeReply, query int, service, reque
 	if majorityStrength < 0.5 {
 		// remove everything, since the majorityCount is just too low
 		for _, v := range uniqueReplies {
-			s.storage.Remove(string(v.Pubkey), v.IP)
+			// FIX HERE
+			s.properlyRemoveSnode(string(v.Pubkey), v.IP)
 		}
 	}
 	consensus.MajorityStrength = fmt.Sprintf("%.2f%%",
@@ -778,8 +796,6 @@ type FetchDataErrorSimple struct {
 	Error string `json:"error"`
 	Code  int    `json:"code"`
 }
-
-// "{\"result\": null, \"error\": {\"code\": -28, \"message\": \"Rewinding blocks...\"}, \"id\": 1}"
 
 func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interface{}, query int) ([]SnodeReply, error) {
 	// TODO Blocknet penalize bad snodes
@@ -896,7 +912,8 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 			}
 
 			_ = s.queryXrShowConfigs(snode)
-			s.storage.AddCount(strPubkey, snode)
+			// FIX HERE
+			s.properlyAddCount(strPubkey, "xr::BTC", snode)
 
 			mu.Lock()
 			if _, ok := uniqueNodes[snode.Endpoint()]; ok {
@@ -984,9 +1001,109 @@ func (s *Client) queryXrShowConfigs(node *sn.ServiceNode) bool {
 		if err != nil {
 			continue
 		}
-		s.storage.Add(pubkey, snode)
+		// FIX HERE
+		s.properlyAddSnodeWoSvcs(pubkey, snode)
 	}
 	return true
+}
+
+func (s *Client) properlyAddSnode(node *sn.ServiceNode, service string) {
+	ip := node.HostIP()
+	// s.mu.Lock()
+	// defer s.mu.Unlock()
+	if _, ok := s.svcIps[ip]; ok {
+		return
+	}
+	s.svcIps[ip] = struct{}{}
+	// check svcs if the node is found there
+	if nodes, ok := s.services[service]; ok {
+		// we actually found nodes for the svc
+		for _, v := range nodes {
+			// there is already such node
+			if node == v {
+				return
+			}
+		}
+	}
+	s.services[service] = append(s.services[service], node)
+}
+
+func (s *Client) properlyAddSnodeWoSvcs(pubkey string, node *sn.ServiceNode) {
+	for k, _ := range node.Services() {
+		s.properlyAddSnode(node, k)
+	}
+}
+
+func (s *Client) properlyRemoveSnode(pubkey, ip string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.svcIps, ip)
+	delete(s.counts, pubkey)
+	// tweak from removing from the pool TODO
+}
+
+func (s *Client) properlyAddCount(pubkey, svc string, node *sn.ServiceNode) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.servicenodes[pubkey]; !ok {
+		s.properlyAddSnode(node, svc)
+	}
+	if v, ok := s.counts[pubkey]; ok {
+		s.counts[pubkey] = v + 1
+	} else {
+		s.counts[pubkey] = 1
+	}
+}
+
+type storageStruct struct {
+	IPs    map[string]struct{}                `json:"ips"`
+	SNodes map[string]*sn.ExportedServiceNode `json:"snodes"`
+	Count  map[string]int                     `json:"count"`
+}
+
+func (s *Client) storeSNodes() {
+	mm := make(map[string]*sn.ExportedServiceNode)
+	for k, v := range s.servicenodes {
+		if v.Pubkey() != nil {
+			mm[k] = sn.ConvertToExport(v)
+		}
+	}
+	ss := storageStruct{
+		IPs:    s.svcIps,
+		SNodes: mm,
+		Count:  s.counts,
+	}
+
+	file, _ := json.MarshalIndent(ss, "", " ")
+	_ = ioutil.WriteFile(snodeFilename, file, 0644)
+
+}
+
+func (s *Client) loadSNodes() {
+	jsonFile, err := os.Open(snodeFilename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer jsonFile.Close()
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	var ss storageStruct
+	json.Unmarshal(byteValue, &ss)
+	mm := make(map[string]*sn.ServiceNode)
+	services := make(map[string][]*sn.ServiceNode)
+	for k, v := range ss.SNodes {
+		node := sn.ConvertToProper(v)
+		mm[k] = node
+		for svc, _ := range node.Services() {
+			services[svc] = append(services[svc], node)
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.servicenodes = mm
+	s.counts = ss.Count
+	s.svcIps = ss.IPs
+	s.services = services
 }
 
 func hashResponse(response []byte) string {

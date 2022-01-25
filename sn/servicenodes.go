@@ -30,6 +30,16 @@ type ServiceNode struct {
 	services      map[string]bool `json:"services"`
 }
 
+type ExportedServiceNode struct {
+	Pubkey        *btcec.PublicKey `json:"pubkey"`
+	Host          string           `json:"host"`
+	Port          int              `json:"port"`
+	TLS           bool             `json:"ttls"`
+	Endpoint      string           `json:"endpoint"`
+	EXRCompatible bool             `json:"exr_compatible"`
+	Services      map[string]bool  `json:"services"`
+}
+
 type ServiceNodeConfigXRouter struct {
 	Config  string            `json:"config,omitempty"`
 	Plugins map[string]string `json:"plugins,omitempty"`
@@ -165,6 +175,13 @@ func NewServiceNodeFromConfig(config string) (*ServiceNode, error) {
 				}
 			}
 		}
+	}
+	proto := "http://"
+	if s.tls {
+		proto = "https://"
+		s.endpoint = proto + s.host + ":443"
+	} else {
+		s.endpoint = proto + s.host + ":" + strconv.Itoa(s.port)
 	}
 	return &s, nil
 

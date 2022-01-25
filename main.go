@@ -56,7 +56,7 @@ func main() {
 	ctx2, cancel2 := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel2()
 	queryCount := 5
-	if err := client.WaitForServices(ctx2, []string{"xr::LTC"}, queryCount); err != nil {
+	if err := client.WaitForServices(ctx2, []string{"xr::BLOCK"}, queryCount); err != nil {
 		log.Printf("error: %v", err)
 		return
 	}
@@ -101,9 +101,9 @@ func main() {
 
 	{
 		// Query the BTC oracle to obtain the chain height
-		if reply, err := client.GetBlockCount("LTC", queryCount); err != nil {
+		if reply, err := client.GetBlockCount("BLOCK", queryCount); err != nil {
 			log.Printf("error: %v", err)
-			return
+			// return
 		} else {
 			if len(reply.Consensus.DivergentReplies) == 0 && reply.Consensus.MostCommonReplyCount == 0 {
 				log.Printf("No replies found. %v\n", reply.QueryCount)
