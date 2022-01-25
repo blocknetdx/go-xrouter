@@ -805,6 +805,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 	queried := 0
 	validResults := 0
 	uniqueNodes := make(map[string]struct{})
+	fmt.Println("snodes", len(*snodes))
 	for _, snode := range *snodes {
 		if !snode.EXRCompatible() {
 			continue
@@ -829,6 +830,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 					mu.Lock()
 					queried--
 					mu.Unlock()
+					s.properlyRemoveSnode(strPubkey, snode.HostIP())
 					return
 				}
 			}
@@ -841,6 +843,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 				mu.Lock()
 				queried--
 				mu.Unlock()
+				s.properlyRemoveSnode(strPubkey, snode.HostIP())
 				return
 			}
 
@@ -852,6 +855,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 				mu.Lock()
 				queried--
 				mu.Unlock()
+				s.properlyRemoveSnode(strPubkey, snode.HostIP())
 				return
 			}
 
@@ -863,6 +867,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 				mu.Lock()
 				queried--
 				mu.Unlock()
+				s.properlyRemoveSnode(strPubkey, snode.HostIP())
 				return
 			}
 
@@ -871,6 +876,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 				mu.Lock()
 				queried--
 				mu.Unlock()
+				s.properlyRemoveSnode(strPubkey, snode.HostIP())
 				return
 			}
 
@@ -881,6 +887,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 				mu.Lock()
 				queried--
 				mu.Unlock()
+				s.properlyRemoveSnode(strPubkey, snode.HostIP())
 				return
 			}
 
@@ -890,6 +897,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 				mu.Lock()
 				queried--
 				mu.Unlock()
+				s.properlyRemoveSnode(strPubkey, snode.HostIP())
 				return
 				// store this error below (no return here)
 			} else {
@@ -903,6 +911,7 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 				mu.Lock()
 				queried--
 				mu.Unlock()
+				s.properlyRemoveSnode(strPubkey, snode.HostIP())
 				return
 				// store this error below (no return here)
 			} else {
@@ -1039,6 +1048,7 @@ func (s *Client) properlyRemoveSnode(pubkey, ip string) {
 	defer s.mu.Unlock()
 	delete(s.svcIps, ip)
 	delete(s.counts, pubkey)
+	delete(s.servicenodes, pubkey)
 	// tweak from removing from the pool TODO
 }
 
