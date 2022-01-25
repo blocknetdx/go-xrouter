@@ -1,8 +1,30 @@
 package sn
 
 import (
+	"encoding/hex"
 	"net"
 )
+
+func ConvertToUser(node *ServiceNode) *ExportedServiceNodeUser {
+	esnu := &ExportedServiceNodeUser{
+		Pubkey:        hex.EncodeToString(node.Pubkey().SerializeCompressed()),
+		Host:          node.host,
+		Port:          node.port,
+		TLS:           node.tls,
+		Endpoint:      node.endpoint,
+		EXRCompatible: node.exrCompatible,
+		Services:      node.services,
+	}
+	return esnu
+}
+
+func ConvertToUserMultiple(nodes []*ServiceNode) []ExportedServiceNodeUser {
+	sens := make([]ExportedServiceNodeUser, len(nodes))
+	for i, v := range nodes {
+		sens[i] = *ConvertToUser(v)
+	}
+	return sens
+}
 
 func ConvertToExport(node *ServiceNode) *ExportedServiceNode {
 	sen := &ExportedServiceNode{

@@ -568,7 +568,7 @@ func (s *Client) CallService(service string, params []interface{}, query int) (*
 }
 
 // GetSnodeList
-func (s *Client) GetSnodeList() []sn.ExportedServiceNode {
+func (s *Client) GetSnodeList() []sn.ExportedServiceNodeUser {
 
 	// FIX HERE
 	sns := make([]*sn.ServiceNode, len(s.servicenodes))
@@ -578,7 +578,7 @@ func (s *Client) GetSnodeList() []sn.ExportedServiceNode {
 		i++
 	}
 	fmt.Println("GET NODE")
-	return sn.ConvertToExportMultiple(sns)
+	return sn.ConvertToUserMultiple(sns)
 }
 
 // addKnownAddresses adds the given addresses to the set of known addresses to

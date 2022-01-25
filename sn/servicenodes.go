@@ -40,6 +40,16 @@ type ExportedServiceNode struct {
 	Services      map[string]bool  `json:"services"`
 }
 
+type ExportedServiceNodeUser struct {
+	Pubkey        string          `json:"pubkey"`
+	Host          string          `json:"host"`
+	Port          int             `json:"port"`
+	TLS           bool            `json:"ttls"`
+	Endpoint      string          `json:"endpoint"`
+	EXRCompatible bool            `json:"exr_compatible"`
+	Services      map[string]bool `json:"services"`
+}
+
 type ServiceNodeConfigXRouter struct {
 	Config  string            `json:"config,omitempty"`
 	Plugins map[string]string `json:"plugins,omitempty"`
