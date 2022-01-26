@@ -71,6 +71,7 @@ const (
 
 const (
 	snodeFilename = "nodes.json"
+	updateTime    = 5 * time.Minute
 )
 
 // xrNS return the XRouter namespace with delimiter.
@@ -263,6 +264,7 @@ func NewClient(params chaincfg.Params) (*Client, error) {
 	}
 	s.connManager = cmgr
 	s.loadSNodes()
+	s.getSnodeList()
 	return &s, nil
 }
 
@@ -567,19 +569,19 @@ func (s *Client) CallService(service string, params []interface{}, query int) (*
 	}
 }
 
-// GetSnodeList
-func (s *Client) GetSnodeList() []sn.ExportedServiceNodeUser {
+// // GetSnodeList
+// func (s *Client) GetSnodeList() []sn.ExportedServiceNodeUser {
 
-	// FIX HERE
-	sns := make([]*sn.ServiceNode, len(s.servicenodes))
-	i := 0
-	for _, v := range s.servicenodes {
-		sns[i] = v
-		i++
-	}
-	fmt.Println("GET NODE")
-	return sn.ConvertToUserMultiple(sns)
-}
+// 	// FIX HERE
+// 	sns := make([]*sn.ServiceNode, len(s.servicenodes))
+// 	i := 0
+// 	for _, v := range s.servicenodes {
+// 		sns[i] = v
+// 		i++
+// 	}
+// 	fmt.Println("GET NODE")
+// 	return sn.ConvertToUserMultiple(sns)
+// }
 
 // addKnownAddresses adds the given addresses to the set of known addresses to
 // the peer to prevent sending duplicate addresses.
@@ -920,10 +922,6 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 				mu.Unlock()
 			}
 
-			_ = s.queryXrShowConfigs(snode)
-			// FIX HERE
-			s.properlyAddCount(strPubkey, "xr::BTC", snode)
-
 			mu.Lock()
 			if _, ok := uniqueNodes[snode.Endpoint()]; ok {
 				mu.Unlock()
@@ -948,6 +946,12 @@ func (s *Client) fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, par
 		return replies, errors.New("no replies found")
 	}
 	return replies, nil
+}
+
+func (s *Client) queryXrShowConfigsWrapper() {
+	for _, v := range s.servicenodes {
+		s.queryXrShowConfigs(v)
+	}
 }
 
 func (s *Client) queryXrShowConfigs(node *sn.ServiceNode) bool {
@@ -1040,6 +1044,7 @@ func (s *Client) properlyAddSnode(node *sn.ServiceNode, service string) {
 func (s *Client) properlyAddSnodeWoSvcs(pubkey string, node *sn.ServiceNode) {
 	for k, _ := range node.Services() {
 		s.properlyAddSnode(node, k)
+		s.properlyAddCount(pubkey, k, node)
 	}
 }
 
@@ -1114,6 +1119,24 @@ func (s *Client) loadSNodes() {
 	s.counts = ss.Count
 	s.svcIps = ss.IPs
 	s.services = services
+}
+
+func (s *Client) getSnodeList() {
+	ticker := time.NewTicker(updateTime)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				// do stuff
+				s.queryXrShowConfigsWrapper()
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 }
 
 func hashResponse(response []byte) string {
