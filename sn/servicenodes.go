@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"regexp"
@@ -56,7 +55,6 @@ func NewServiceNode(pubkey *btcec.PublicKey, config string) (*ServiceNode, error
 	s.services = make(map[string]bool)
 
 	// Parse config
-	fmt.Println(config)
 	var snconf ServiceNodeConfig
 	if err := json.Unmarshal([]byte(config), &snconf); err != nil {
 		log.Println(err)
