@@ -774,3 +774,10 @@ func fetchDataFromSnodes(snodes *[]*sn.ServiceNode, path string, params []interf
 	}
 	return replies, nil
 }
+
+func (s *Client) FetchOneSnode() sn.ServiceNode {
+	for _, v := range s.servicenodes {
+		return *v
+	}
+	return sn.ServiceNode{}
+}
