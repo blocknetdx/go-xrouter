@@ -1054,6 +1054,23 @@ func (s *Client) properlyRemoveSnode(pubkey, ip string) {
 	delete(s.svcIps, ip)
 	delete(s.counts, pubkey)
 	delete(s.servicenodes, pubkey)
+
+	for svc, nodes := range s.services {
+		index := -1
+		for i, node := range nodes {
+			if node.HostIP() == ip {
+				index = i
+			}
+			break
+		}
+
+		// remove that index
+		if index != -1 {
+			nn := append(nodes[:index], nodes[index+1:]...)
+			s.services[svc] = nn
+			break
+		}
+	}
 	// tweak from removing from the pool TODO
 }
 
@@ -1143,4 +1160,14 @@ func hashResponse(response []byte) string {
 	h := sha1.New()
 	h.Write([]byte(response))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func (s *Client) GetSnodeList() []sn.ServiceNode {
+	sns := make([]sn.ServiceNode, len(s.servicenodes))
+	i := 0
+	for _, v := range s.servicenodes {
+		sns[i] = *v
+		i++
+	}
+	return sns
 }
