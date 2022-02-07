@@ -536,6 +536,17 @@ func (s *Client) CallService(service string, params []interface{}, query int) (*
 	}
 }
 
+func (s *Client) Status() {
+	// return xrouter.conf, but it is not specified
+}
+
+func (s *Client) StatusFromNode(pubkey string) (*sn.ServiceNode, error) {
+	if node, ok := s.servicenodes[pubkey]; ok {
+		return node, nil
+	}
+	return nil, fmt.Errorf("no such node with a specified pubkey: %s", pubkey)
+}
+
 // addKnownAddresses adds the given addresses to the set of known addresses to
 // the peer to prevent sending duplicate addresses.
 func (s *Client) addKnownAddresses(addresses []*wire.NetAddress) {
